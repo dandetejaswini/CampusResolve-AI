@@ -257,16 +257,20 @@ export function getReferenceCorpus(): {
   };
 }
 
+const DEFAULT_SUPABASE_URL = 'https://llotsqzeppiltosllxvx.supabase.co';
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
+  'sb_publishable_JX6Tuki8_uwYBPuQfsGmtA_2eJPoz_W';
+
 export function createScopedSupabaseClient(bearerToken: string): SupabaseClient {
   const supabaseUrl = (
     process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    'https://llotsqzeppiltosllxvx.supabase.co'
+    DEFAULT_SUPABASE_URL
   ).trim();
   const supabaseKey = (
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
-    ''
+    DEFAULT_SUPABASE_PUBLISHABLE_KEY
   ).trim();
 
   return createClient(supabaseUrl, supabaseKey, {
@@ -288,7 +292,7 @@ export function createServiceRoleSupabaseClient(): SupabaseClient | null {
   const supabaseUrl = (
     process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    ''
+    DEFAULT_SUPABASE_URL
   ).trim();
   const serviceRoleKey = (
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -343,12 +347,12 @@ export async function verifyAuthenticatedProfileFromHeaders(
   const supabaseUrl = (
     process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    ''
+    DEFAULT_SUPABASE_URL
   ).trim();
   const supabaseKey = (
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
-    ''
+    DEFAULT_SUPABASE_PUBLISHABLE_KEY
   ).trim();
 
   if (!supabaseUrl || !supabaseKey) {
@@ -3478,6 +3482,11 @@ export function extractQuery(req: any): Record<string, string | string[] | undef
 }
 
 export async function extractBody(req: any): Promise<any> {
+  const method = (req.method || 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+    return undefined;
+  }
+
   if (req.body !== undefined) {
     if (typeof req.body === 'string' && req.body.trim().length > 0) {
       try {
@@ -3489,7 +3498,16 @@ export async function extractBody(req: any): Promise<any> {
     return req.body;
   }
 
-  if (typeof req.on === 'function') {
+  if (typeof req.on === 'function' && !req.readableEnded) {
+    const contentLength = req.headers?.['content-length'];
+    const hasBody =
+      (contentLength && parseInt(contentLength, 10) > 0) ||
+      Boolean(req.headers?.['transfer-encoding']);
+
+    if (!hasBody) {
+      return undefined;
+    }
+
     try {
       const chunks: Buffer[] = [];
       for await (const chunk of req) {
