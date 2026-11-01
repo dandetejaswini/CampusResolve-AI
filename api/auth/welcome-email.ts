@@ -74,6 +74,14 @@ export interface WelcomeEmailDependencies {
  * `public.app_profiles` under Supabase PostgreSQL Row Level Security (RLS), ensuring
  * that an unauthenticated browser cannot spoof `profileId` or `recipientEmail`.
  */
+const DEFAULT_SUPABASE_URL = 'https://llotsqzeppiltosllxvx.supabase.co';
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
+  'sb_publishable_JX6Tuki8_uwYBPuQfsGmtA_2eJPoz_W';
+const DEFAULT_APPS_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbzt_hRuiMFy_ZYjwAwc5dssY0WOfsallOjV57PocvIKS3dtXOh_5EMa9WLbDhHnrpEs/exec';
+const DEFAULT_APPS_SCRIPT_SECRET =
+  'CampusResolve_Demo_2026!x9Kp7Lm2Qv8Rt5Wn4Yz6';
+
 async function defaultVerifyCallerProfile(
   bearerToken: string,
   expectedProfileId: string
@@ -85,12 +93,12 @@ async function defaultVerifyCallerProfile(
   const supabaseUrl = (
     process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    ''
+    DEFAULT_SUPABASE_URL
   ).trim();
   const supabasePublishableKey = (
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
-    ''
+    DEFAULT_SUPABASE_PUBLISHABLE_KEY
   ).trim();
 
   if (
@@ -127,7 +135,9 @@ async function defaultVerifyCallerProfile(
 
     // Fallback for Firebase Google ID tokens when PostgREST RLS did not match `role: "authenticated"`:
     // Verify the Firebase ID token cryptographically on the server and verify profile ownership by UID + expectedProfileId.
-    const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '')
+    const serviceRoleKey = (
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    )
       .trim()
       .replace(/^["']|["']$/g, '');
     if (serviceRoleKey && !serviceRoleKey.includes('your-service-role-key')) {
@@ -190,7 +200,7 @@ async function persistServerWelcomeEmailOutcome(params: {
   const supabaseUrl = (
     process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    ''
+    DEFAULT_SUPABASE_URL
   ).trim();
   const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '')
     .trim()
@@ -431,9 +441,11 @@ export async function processWelcomeEmailRequest(
   }
 
   // 4. Verify server-side Google Apps Script configuration
-  const appsScriptUrl = (process.env.APPS_SCRIPT_WEB_APP_URL || '').trim();
+  const appsScriptUrl = (
+    process.env.APPS_SCRIPT_WEB_APP_URL || DEFAULT_APPS_SCRIPT_URL
+  ).trim();
   const appsScriptSecret = (
-    process.env.APPS_SCRIPT_SHARED_SECRET || ''
+    process.env.APPS_SCRIPT_SHARED_SECRET || DEFAULT_APPS_SCRIPT_SECRET
   ).trim();
 
   if (
@@ -614,25 +626,35 @@ export default async function handler(req: any, res: any) {
   };
 
   try {
+    const method = (req.method || 'GET').toUpperCase();
     let parsedBody = req.body;
-    if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
+    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+      parsedBody = undefined;
+    } else if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
       try {
         parsedBody = JSON.parse(parsedBody);
       } catch {
         parsedBody = undefined;
       }
-    } else if (parsedBody === undefined && typeof req.on === 'function') {
-      try {
-        const chunks: Buffer[] = [];
-        for await (const chunk of req) {
-          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    } else if (parsedBody === undefined && typeof req.on === 'function' && !req.readableEnded) {
+      const contentLength = req.headers?.['content-length'];
+      const hasBody =
+        (contentLength && parseInt(contentLength, 10) > 0) ||
+        Boolean(req.headers?.['transfer-encoding']);
+
+      if (hasBody) {
+        try {
+          const chunks: Buffer[] = [];
+          for await (const chunk of req) {
+            chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+          }
+          const raw = Buffer.concat(chunks).toString('utf8');
+          if (raw.trim().length > 0) {
+            parsedBody = JSON.parse(raw);
+          }
+        } catch {
+          parsedBody = undefined;
         }
-        const raw = Buffer.concat(chunks).toString('utf8');
-        if (raw.trim().length > 0) {
-          parsedBody = JSON.parse(raw);
-        }
-      } catch {
-        parsedBody = undefined;
       }
     }
 
