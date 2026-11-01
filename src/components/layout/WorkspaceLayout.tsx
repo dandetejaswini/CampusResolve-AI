@@ -85,7 +85,7 @@ export const WorkspaceLayout: React.FC = () => {
       setIsLoadingWorkspace(true);
       setWorkspaceError(null);
       try {
-        const res = await fetchWorkspaceBootstrap(params);
+        const res = await fetchWorkspaceBootstrap(params, profile);
         setWorkspaceData(res);
       } catch (err) {
         setWorkspaceError(
