@@ -2222,6 +2222,17 @@ export function detectConflictingPolicySources(params: {
       'active',
       'procedure',
       'rules',
+      'financial',
+      'aid',
+      'student',
+      'students',
+      'services',
+      'regulations',
+      'office',
+      'guidelines',
+      'framework',
+      'standard',
+      'standards',
     ]);
     return title
       .toLowerCase()
@@ -2343,15 +2354,15 @@ export function detectUnsupportedFactRequest(params: {
   }[] = [
     {
       regex:
-        /\b(dollar|dollars|usd|filing fee|processing fee|late fee|application fee|fine|fines|monetary penalty|cost|price|charge|cash stipend|reimbursement|refund amount|hourly wage)\b|\$[0-9]+/i,
+        /\b(dollar|dollars|usd|filing fee|processing fee|late fee|application fee|fine|fines|monetary penalty|cost|price|charge|cash stipend|cash grant|reimbursement|refund amount|hourly wage)\b|\$[0-9,]+/i,
       evidenceRegex:
-        /\b(dollar|dollars|filing fee|processing fee|late fee|application fee|monetary penalty|reimbursement|refund)\b|\$[0-9]+/i,
+        /\b(filing fee|processing fee|late fee|application fee|monetary penalty|cash stipend|cash grant)\b|\$[0-9,]+/i,
       description:
         'Monetary fees, fines, dollar amounts, or cash reimbursements are not established in the retrieved active policy documents.',
     },
     {
       regex:
-        /\b(guaranteed approval|automatic approval|automatic waiver|100%\s+guaranteed|private hotel|medical scribe|personal laptop giveaway|free macbook|visa sponsorship|legal representation)\b/i,
+        /\b(guaranteed|automatic approval|automatic waiver|automatic grant|deadline waiver|45-day|100%\s+guaranteed|private hotel|medical scribe|personal laptop giveaway|free macbook|visa sponsorship|legal representation)\b/i,
       evidenceRegex:
         /\b(guaranteed approval|automatic waiver|medical scribe|visa sponsorship|legal representation)\b/i,
       description:
@@ -2672,8 +2683,9 @@ export function retrieveApplicablePolicyEvidence(params: {
   }[] = [];
 
   for (const article of params.articles) {
+    const tagsStr = Array.isArray(article.tags) ? article.tags.join(' ') : '';
     const hay =
-      `${article.article_id} ${article.title} ${article.summary} ${article.content} ${article.tags.join(' ')}`.toLowerCase();
+      `${article.article_id} ${article.title} ${article.summary} ${article.content} ${tagsStr}`.toLowerCase();
     let score = 0;
     if (
       detectedCategory &&

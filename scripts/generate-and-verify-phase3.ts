@@ -10,6 +10,9 @@ import {
 import {
   runDatasetValidationSuite,
   evaluateOperationalAnomaliesAgainstGroundTruth,
+  evaluateComparativeBaselines,
+  formatBaselineComparisonCsv,
+  formatConfusionMatrixCsv,
   formatPhase8AnomalyScenariosCsv,
   formatPhase8EvaluationMetricsCsv,
   formatPhase8GroundTruthComparisonCsv,
@@ -415,6 +418,60 @@ async function main() {
   );
 
   // Write Phase 8 CSV evaluation artifacts in datasets/csv/
+  const comparativeReport = evaluateComparativeBaselines(fullRun1);
+  const baselineComparisonCsv = formatBaselineComparisonCsv(comparativeReport);
+  const confusionMatrixCsv = formatConfusionMatrixCsv(comparativeReport);
+
+  fs.writeFileSync(path.join(csvDir, 'baseline_comparison.csv'), baselineComparisonCsv, 'utf8');
+  fs.writeFileSync(path.join(csvDir, 'confusion_matrix.csv'), confusionMatrixCsv, 'utf8');
+  csvExportChecksums['baseline_comparison.csv'] = sha256(baselineComparisonCsv);
+  csvExportChecksums['confusion_matrix.csv'] = sha256(confusionMatrixCsv);
+
+  fs.writeFileSync(
+    path.join(jsonDir, 'baseline_comparison.json'),
+    JSON.stringify(comparativeReport, null, 2),
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(datasetsDir, 'baseline_comparison.json'),
+    JSON.stringify(comparativeReport, null, 2),
+    'utf8'
+  );
+  jsonExportChecksums['baseline_comparison.json'] = sha256(
+    JSON.stringify(comparativeReport, null, 2)
+  );
+
+  const comprehensiveEvaluationSummary = {
+    seed: DETERMINISTIC_SEED,
+    generatedAtAnchor: BASE_ANCHOR_DATE_ISO,
+    totalTicketsEvaluated: fullEvaluationReport1.totalTicketsEvaluated,
+    totalGroundTruthAnomalies: fullEvaluationReport1.totalGroundTruthAnomalies,
+    totalDetectedAnomalies: fullEvaluationReport1.totalDetectedAnomalies,
+    overallMetrics: fullEvaluationReport1.overallMetrics,
+    byAnomalyType: fullEvaluationReport1.byAnomalyType,
+    comparativeBaselines: {
+      splitStrategy: comparativeReport.splitStrategy,
+      heldOutEvaluationCount: comparativeReport.heldOutEvaluationCount,
+      totalPopulationCount: comparativeReport.totalPopulationCount,
+      trainDevCount: comparativeReport.trainDevCount,
+      approaches: comparativeReport.approaches,
+    },
+  };
+
+  fs.writeFileSync(
+    path.join(jsonDir, 'evaluation_summary.json'),
+    JSON.stringify(comprehensiveEvaluationSummary, null, 2),
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(datasetsDir, 'evaluation_summary.json'),
+    JSON.stringify(comprehensiveEvaluationSummary, null, 2),
+    'utf8'
+  );
+  jsonExportChecksums['evaluation_summary.json'] = sha256(
+    JSON.stringify(comprehensiveEvaluationSummary, null, 2)
+  );
+
   const phase8CsvArtifacts: Record<string, string> = {
     'validation_checks_report.csv':
       formatPhase8ValidationChecksCsv(fullValidationReport1),
@@ -442,7 +499,7 @@ async function main() {
       messagesPerTicket: 4,
       totalMessages: 20000,
       requesterCount: 500,
-      policyDocumentCount: 12,
+      policyDocumentCount: 24,
       categoryCount: 4,
       roleCount: 5,
       termCount: 4,
