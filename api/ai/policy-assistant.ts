@@ -1184,25 +1184,35 @@ export default async function handler(req: any, res: any) {
   };
 
   try {
+    const method = (req.method || 'GET').toUpperCase();
     let parsedBody = req.body;
-    if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
+    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+      parsedBody = undefined;
+    } else if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
       try {
         parsedBody = JSON.parse(parsedBody);
       } catch {
         parsedBody = undefined;
       }
-    } else if (parsedBody === undefined && typeof req.on === 'function') {
-      try {
-        const chunks: Buffer[] = [];
-        for await (const chunk of req) {
-          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    } else if (parsedBody === undefined && typeof req.on === 'function' && !req.readableEnded) {
+      const contentLength = req.headers?.['content-length'];
+      const hasBody =
+        (contentLength && parseInt(contentLength, 10) > 0) ||
+        Boolean(req.headers?.['transfer-encoding']);
+
+      if (hasBody) {
+        try {
+          const chunks: Buffer[] = [];
+          for await (const chunk of req) {
+            chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+          }
+          const raw = Buffer.concat(chunks).toString('utf8');
+          if (raw.trim().length > 0) {
+            parsedBody = JSON.parse(raw);
+          }
+        } catch {
+          parsedBody = undefined;
         }
-        const raw = Buffer.concat(chunks).toString('utf8');
-        if (raw.trim().length > 0) {
-          parsedBody = JSON.parse(raw);
-        }
-      } catch {
-        parsedBody = undefined;
       }
     }
 
