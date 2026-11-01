@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "NODE_ENV=production tsx server.ts",
-    "build": "vite build",
+    "build": "vite build && npm run build:api",
+    "build:api": "esbuild server-api/ops/workspace.ts --bundle --platform=node --format=esm --packages=external --outfile=api/ops/workspace.js && esbuild server-api/auth/welcome-email.ts --bundle --platform=node --format=esm --packages=external --outfile=api/auth/welcome-email.js && esbuild server-api/auth/firebase-claim.ts --bundle --platform=node --format=esm --packages=external --outfile=api/auth/firebase-claim.js && esbuild server-api/ai/policy-assistant.ts --bundle --platform=node --format=esm --packages=external --outfile=api/ai/policy-assistant.js",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
