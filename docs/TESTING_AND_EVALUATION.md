@@ -22,13 +22,15 @@
 
 ## 2. Comparative Evaluation Framework & Baseline Benchmarking
 
-Per mentor feedback, evaluating a detector on the exact same rules that generate synthetic anomalies produces artificial 1.0 metrics. To establish genuine evaluation credibility, we implemented:
-1. **Isolated Held-Out Test Set:** An 80/20 split isolating 1,000 held-out evaluation tickets (800 normal, 200 anomalies) that are never used to tune or configure detection heuristics.
-2. **Ground-Truth Isolation:** Ground-truth labels (`has_anomaly`, `anomaly_types`, `anomaly_ids`) are strictly stripped before detector intake. No generation metadata or ground-truth flags are passed into evaluated algorithms.
-3. **Three Comparative Approaches:**
-   - **Baseline A (Keyword-Only Matching):** Simple keyword-based routing, category scoring, and heuristic string matching.
-   - **Baseline B (Simple Rule-Based Detector):** Basic deterministic rule checks without multi-stage DAG validation, cross-document supersession tracking, or business-hour holiday calendars.
-   - **Proposed Approach (CampusResolve AI):** Full multi-stage RAG grounding, date-aware policy catalog verification, business-hour calendar SLA arithmetic, and RBAC authorization verification.
+- **Evaluation Credibility Standard**:
+  - Direct rule alignment produces artificially inflated 1.0 metrics.
+  - Mitigated by testing against three separate architectures on held-out data.
+- **Evaluation Protocols**:
+  - **Isolated Held-Out Test Set**: 80/20 partition isolating 1,000 evaluation tickets (800 normal, 200 anomalies).
+  - **Ground-Truth Isolation**: Labels (`has_anomaly`, `anomaly_types`) strictly stripped before detector intake.
+  - **Baseline A (Keyword-Only Matching)**: String matching and heuristic keyword scoring.
+  - **Baseline B (Simple Rule-Based Detector)**: Deterministic rule checks without calendar awareness or supersession tracking.
+  - **Proposed Approach (CampusResolve AI)**: Multi-stage RAG grounding, date-aware policy filtering, business-hour calendar arithmetic, and RBAC authorization verification.
 
 ### 2.1 Comparative Performance Summary (Held-Out Test Set)
 
