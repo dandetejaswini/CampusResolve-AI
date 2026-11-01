@@ -1,6 +1,4 @@
 import crypto from 'node:crypto';
-import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { createClient } from '@supabase/supabase-js';
 import {
   AppProfile,
@@ -78,11 +76,17 @@ function getExpectedProjectId(): string {
   ).trim();
 }
 
-function getFirebaseAdminApp(): App | null {
+export type App = any;
+
+let cachedFirebaseApp: any = null;
+export async function getFirebaseAdminAppAsync(): Promise<any> {
+  if (cachedFirebaseApp) return cachedFirebaseApp;
   try {
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
     const existing = getApps();
     if (existing.length > 0) {
-      return existing[0];
+      cachedFirebaseApp = existing[0];
+      return cachedFirebaseApp;
     }
 
     const projectId = getExpectedProjectId();
@@ -103,7 +107,7 @@ function getFirebaseAdminApp(): App | null {
 
     const privateKey = rawPrivateKey.replace(/\\n/g, '\n');
 
-    return initializeApp({
+    cachedFirebaseApp = initializeApp({
       credential: cert({
         projectId,
         clientEmail,
@@ -111,6 +115,23 @@ function getFirebaseAdminApp(): App | null {
       }),
       projectId,
     });
+    return cachedFirebaseApp;
+  } catch {
+    return null;
+  }
+}
+
+export function getFirebaseAdminApp(): any {
+  return cachedFirebaseApp;
+}
+
+let cachedFirebaseAuth: any = null;
+export async function getLazyFirebaseAuth(): Promise<any> {
+  if (cachedFirebaseAuth) return cachedFirebaseAuth;
+  try {
+    const authModule = await import('firebase-admin/auth');
+    cachedFirebaseAuth = authModule;
+    return authModule;
   } catch {
     return null;
   }
@@ -274,31 +295,34 @@ export async function verifyFirebaseIdTokenServerSide(
   fetchFn: typeof fetch = fetch
 ): Promise<VerifiedFirebaseTokenIdentity> {
   const expectedProjectId = getExpectedProjectId();
-  const adminApp = getFirebaseAdminApp();
+  const adminApp = await getFirebaseAdminAppAsync();
 
   if (adminApp) {
     try {
-      const adminAuth = getAuth(adminApp);
-      const decoded = await adminAuth.verifyIdToken(idToken, true);
-      return {
-        uid: decoded.uid,
-        email: (decoded.email || '').trim().toLowerCase(),
-        emailVerified: decoded.email_verified === true,
-        name:
-          typeof (decoded as Record<string, unknown>).name === 'string'
-            ? ((decoded as Record<string, unknown>).name as string).trim()
-            : undefined,
-        aud: typeof decoded.aud === 'string' ? decoded.aud : expectedProjectId,
-        iss:
-          typeof decoded.iss === 'string'
-            ? decoded.iss
-            : `https://securetoken.google.com/${expectedProjectId}`,
-        roleClaim:
-          typeof (decoded as Record<string, unknown>).role === 'string'
-            ? ((decoded as Record<string, unknown>).role as string)
-            : undefined,
-        verifiedVia: 'firebase_admin',
-      };
+      const authMod = await getLazyFirebaseAuth();
+      if (authMod?.getAuth) {
+        const adminAuth = authMod.getAuth(adminApp);
+        const decoded = await adminAuth.verifyIdToken(idToken, true);
+        return {
+          uid: decoded.uid,
+          email: (decoded.email || '').trim().toLowerCase(),
+          emailVerified: decoded.email_verified === true,
+          name:
+            typeof (decoded as Record<string, unknown>).name === 'string'
+              ? ((decoded as Record<string, unknown>).name as string).trim()
+              : undefined,
+          aud: typeof decoded.aud === 'string' ? decoded.aud : expectedProjectId,
+          iss:
+            typeof decoded.iss === 'string'
+              ? decoded.iss
+              : `https://securetoken.google.com/${expectedProjectId}`,
+          roleClaim:
+            typeof (decoded as Record<string, unknown>).role === 'string'
+              ? ((decoded as Record<string, unknown>).role as string)
+              : undefined,
+          verifiedVia: 'firebase_admin',
+        };
+      }
     } catch (adminErr) {
       // If Firebase Admin failed because of service account credential formatting,
       // fall back to Google SecureToken X.509 cryptographic verification.
@@ -432,15 +456,18 @@ export async function processFirebaseClaimRequest(
 
   if (!alreadyHadRoleClaim && adminApp && !deps.verifyIdTokenFn) {
     try {
-      const adminAuth = getAuth(adminApp);
-      const userRecord = await adminAuth.getUser(verifiedToken.uid);
-      const existingClaims = userRecord.customClaims || {};
-      await adminAuth.setCustomUserClaims(verifiedToken.uid, {
-        ...existingClaims,
-        role: 'authenticated',
-      });
-      roleClaimAssigned = true;
-      requiresTokenRefresh = true;
+      const authMod = await getLazyFirebaseAuth();
+      if (authMod?.getAuth) {
+        const adminAuth = authMod.getAuth(adminApp);
+        const userRecord = await adminAuth.getUser(verifiedToken.uid);
+        const existingClaims = userRecord.customClaims || {};
+        await adminAuth.setCustomUserClaims(verifiedToken.uid, {
+          ...existingClaims,
+          role: 'authenticated',
+        });
+        roleClaimAssigned = true;
+        requiresTokenRefresh = true;
+      }
     } catch {
       // Non-fatal when server-side profile provisioning via service role is active
       roleClaimAssigned = false;
