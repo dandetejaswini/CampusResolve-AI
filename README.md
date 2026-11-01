@@ -70,4 +70,3 @@ Enterprise academic support and deterministic policy governance platform designe
 - [Testing & Evaluation Methodology](docs/TESTING_AND_EVALUATION.md) — Baseline benchmarking, confusion matrices, and anomaly detection results.
 - [Limitations & Future Roadmap](docs/LIMITATIONS_AND_FUTURE_IMPROVEMENTS.md) — Institutional edge cases, OCR boundaries, and planned SIS connectors.
 - [AI Usage & Prompt History](docs/AI_USAGE_AND_PROMPT_HISTORY.md) — Traceability of AI engineering assistance and developer verification procedures.
-- [Demo Video Script](docs/DEMO_VIDEO_SCRIPT.md) — Structured 2-minute 45-second screen walkthrough script and recording checklist.
