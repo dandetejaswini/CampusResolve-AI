@@ -571,6 +571,48 @@ export async function processWelcomeEmailRequest(
 
 // Vercel Serverless Function Default Handler
 export default async function handler(req: any, res: any) {
+  const sendResponse = (status: number, body: any) => {
+    try {
+      if (status === 204) {
+        if (typeof res.status === 'function' && typeof res.end === 'function') {
+          res.status(204).end();
+        } else {
+          res.statusCode = 204;
+          res.end();
+        }
+        return;
+      }
+      if (typeof res.status === 'function' && typeof res.json === 'function') {
+        res.status(status).json(body);
+        return;
+      }
+      res.statusCode = status;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify(body));
+    } catch {
+      try {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(
+          JSON.stringify({
+            ok: false,
+            requestAccepted: false,
+            appsScriptExecuted: false,
+            emailSendApiSucceeded: false,
+            inboxDeliveryGuaranteed: false,
+            senderEmail: DEDICATED_GMAIL_SENDER,
+            deliveryStatus: 'failed',
+            sentAt: null,
+            failureDetails: 'Failed writing server response',
+            message: 'Unable to process welcome email request at this time.',
+          })
+        );
+      } catch {
+        // Socket closed
+      }
+    }
+  };
+
   try {
     let parsedBody = req.body;
     if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
@@ -579,15 +621,29 @@ export default async function handler(req: any, res: any) {
       } catch {
         parsedBody = undefined;
       }
+    } else if (parsedBody === undefined && typeof req.on === 'function') {
+      try {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        const raw = Buffer.concat(chunks).toString('utf8');
+        if (raw.trim().length > 0) {
+          parsedBody = JSON.parse(raw);
+        }
+      } catch {
+        parsedBody = undefined;
+      }
     }
+
     const result = await processWelcomeEmailRequest(
       req.method,
       parsedBody,
       req.headers || {}
     );
-    res.status(result.status).json(result.body);
+    sendResponse(result.status, result.body);
   } catch (err) {
-    res.status(500).json({
+    sendResponse(500, {
       ok: false,
       requestAccepted: false,
       appsScriptExecuted: false,

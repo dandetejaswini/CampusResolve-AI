@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, FilePlus2, LogOut, ShieldCheck } from 'lucide-react';
-import { ActorRole, ViewDataState } from '../../types/domain';
+import { ActorRole } from '../../types/domain';
 import { ACTOR_METADATA, getActorMetadata } from '../../utils/rbac';
 import type { AppProfile } from '../../services/identityService';
 
@@ -10,8 +10,6 @@ export interface WorkspaceHeaderProps {
   activeRole: ActorRole;
   profile: AppProfile | null;
   onRoleChange: (role: ActorRole) => void;
-  dataState: ViewDataState;
-  onDataStateChange: (state: ViewDataState) => void;
   onOpenMobileSidebar: () => void;
   onSignOut: () => void;
 }
@@ -21,8 +19,6 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   activeRole,
   profile,
   onRoleChange,
-  dataState,
-  onDataStateChange,
   onOpenMobileSidebar,
   onSignOut,
 }) => {

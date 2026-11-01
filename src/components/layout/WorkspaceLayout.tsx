@@ -143,8 +143,6 @@ export const WorkspaceLayout: React.FC = () => {
             activeRole={activeRole}
             profile={profile}
             onRoleChange={setActiveRole}
-            dataState={dataState}
-            onDataStateChange={setDataState}
             onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
             onSignOut={handleSignOut}
           />
@@ -204,10 +202,11 @@ export const WorkspaceLayout: React.FC = () => {
                 </div>
                 <button
                   type="button"
+                  disabled={isLoadingWorkspace}
                   onClick={() => refreshWorkspaceData()}
-                  className="shrink-0 rounded border border-[#8C3A32]/40 bg-[#F8F7F3] px-3 py-1.5 text-xs font-medium text-[#292A25] hover:bg-[#E8E4DC] transition-colors"
+                  className="shrink-0 rounded border border-[#8C3A32]/40 bg-[#F8F7F3] px-3 py-1.5 text-xs font-medium text-[#292A25] hover:bg-[#E8E4DC] disabled:opacity-50 transition-colors"
                 >
-                  Retry Synchronization
+                  {isLoadingWorkspace ? 'Synchronizing...' : 'Retry Synchronization'}
                 </button>
               </div>
             </div>

@@ -266,10 +266,11 @@ export const DashboardPage: React.FC = () => {
           </Button>
           <Button
             variant="outline"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoadingWorkspace ? 'animate-spin' : ''}`} />}
+            disabled={isLoadingWorkspace}
             onClick={() => refreshWorkspaceData()}
           >
-            Refresh Ledger
+            {isLoadingWorkspace ? 'Refreshing...' : 'Refresh Ledger'}
           </Button>
           <Button
             variant="outline"

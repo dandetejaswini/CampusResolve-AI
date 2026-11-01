@@ -1148,6 +1148,41 @@ export async function processPolicyAssistantRequest(
 }
 
 export default async function handler(req: any, res: any) {
+  const sendResponse = (status: number, body: any) => {
+    try {
+      if (status === 204) {
+        if (typeof res.status === 'function' && typeof res.end === 'function') {
+          res.status(204).end();
+        } else {
+          res.statusCode = 204;
+          res.end();
+        }
+        return;
+      }
+      if (typeof res.status === 'function' && typeof res.json === 'function') {
+        res.status(status).json(body);
+        return;
+      }
+      res.statusCode = status;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify(body));
+    } catch {
+      try {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(
+          JSON.stringify({
+            ok: false,
+            code: 'SERVER_ERROR',
+            message: 'Failed writing policy assistant response.',
+          })
+        );
+      } catch {
+        // Socket closed
+      }
+    }
+  };
+
   try {
     let parsedBody = req.body;
     if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
@@ -1156,15 +1191,29 @@ export default async function handler(req: any, res: any) {
       } catch {
         parsedBody = undefined;
       }
+    } else if (parsedBody === undefined && typeof req.on === 'function') {
+      try {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        const raw = Buffer.concat(chunks).toString('utf8');
+        if (raw.trim().length > 0) {
+          parsedBody = JSON.parse(raw);
+        }
+      } catch {
+        parsedBody = undefined;
+      }
     }
+
     const result = await processPolicyAssistantRequest(
       req.method,
       parsedBody,
       req.headers || {}
     );
-    res.status(result.status).json(result.body);
+    sendResponse(result.status, result.body);
   } catch (err) {
-    res.status(500).json({
+    sendResponse(500, {
       ok: false,
       code: 'SERVER_ERROR',
       message:

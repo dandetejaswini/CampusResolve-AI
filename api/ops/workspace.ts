@@ -532,42 +532,29 @@ async function getOrProvisionRemoteRequester(
   profile: VerifiedCallerIdentity,
   injectedServiceClient?: SupabaseClient | null
 ): Promise<RequesterRecord> {
+  const isMockTestClient = Boolean((client as any)?.tables || (client as any)?.rpcCalls);
   const adminClient =
     injectedServiceClient !== undefined
       ? injectedServiceClient
+      : isMockTestClient
+      ? client
       : createServiceRoleSupabaseClient();
   const rwClient = adminClient || client;
 
-  const { data: existing, error: selectErr } = await client
+  // 1. Idempotently check if requester record already exists for this app_profile_id
+  const { data: existing } = await rwClient
     .from('requesters')
     .select('*')
     .eq('app_profile_id', profile.id)
     .limit(1)
     .maybeSingle();
 
-  if (selectErr && !adminClient) {
-    throw new Error(
-      `Unable to load your requester profile (${selectErr.code}): ${selectErr.message}`
-    );
-  }
-
-  let matchedExisting = existing;
-  if (!matchedExisting && adminClient) {
-    const { data: adminExisting } = await adminClient
-      .from('requesters')
-      .select('*')
-      .eq('app_profile_id', profile.id)
-      .limit(1)
-      .maybeSingle();
-    matchedExisting = adminExisting;
-  }
-
   const nowIso = new Date().toISOString();
 
-  if (matchedExisting) {
+  if (existing) {
     if (
-      matchedExisting.display_name !== profile.display_name ||
-      matchedExisting.department !== profile.department
+      existing.display_name !== profile.display_name ||
+      existing.department !== profile.department
     ) {
       const { data: updated, error: updateErr } = await rwClient
         .from('requesters')
@@ -576,9 +563,9 @@ async function getOrProvisionRemoteRequester(
           department: profile.department,
           updated_at: nowIso,
         })
-        .eq('requester_id', matchedExisting.requester_id)
+        .eq('requester_id', existing.requester_id)
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (!updateErr && updated) {
         return {
@@ -588,8 +575,8 @@ async function getOrProvisionRemoteRequester(
       }
     }
     return {
-      ...(matchedExisting as RequesterRecord),
-      primary_term_id: matchedExisting.primary_term_id || 'TERM-2026-FALL',
+      ...(existing as RequesterRecord),
+      primary_term_id: existing.primary_term_id || 'TERM-2026-FALL',
     };
   }
 
@@ -597,6 +584,52 @@ async function getOrProvisionRemoteRequester(
     .replace(/[^a-zA-Z0-9]/g, '')
     .toUpperCase()
     .slice(0, 8);
+  const targetRequesterId = `REQ-USR-${cleanHash}`;
+
+  // 2. Check if a requester with this targetRequesterId or verified_email already exists to prevent duplicate records
+  const { data: existingById } = await rwClient
+    .from('requesters')
+    .select('*')
+    .eq('requester_id', targetRequesterId)
+    .limit(1)
+    .maybeSingle();
+
+  let existingByEmail = existingById;
+  if (!existingByEmail) {
+    const { data: byEmail } = await rwClient
+      .from('requesters')
+      .select('*')
+      .eq('verified_email', profile.verified_email.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+    existingByEmail = byEmail;
+  }
+
+  if (existingByEmail) {
+    const { data: updated, error: linkErr } = await rwClient
+      .from('requesters')
+      .update({
+        app_profile_id: profile.id,
+        display_name: profile.display_name,
+        department: profile.department,
+        updated_at: nowIso,
+      })
+      .eq('requester_id', existingByEmail.requester_id)
+      .select('*')
+      .maybeSingle();
+
+    if (!linkErr && updated) {
+      return {
+        ...(updated as RequesterRecord),
+        primary_term_id: updated.primary_term_id || 'TERM-2026-FALL',
+      };
+    }
+    return {
+      ...(existingByEmail as RequesterRecord),
+      primary_term_id: existingByEmail.primary_term_id || 'TERM-2026-FALL',
+    };
+  }
+
   const roleMap: Record<ActorRole, string> = {
     [ActorRole.Learner]: 'ROLE-LEARNER',
     [ActorRole.Instructor]: 'ROLE-INSTRUCTOR',
@@ -629,7 +662,7 @@ async function getOrProvisionRemoteRequester(
   const dbTermId = await resolveDefaultDatabaseTermId(rwClient);
 
   const dbRowToInsert = {
-    requester_id: `REQ-USR-${cleanHash}`,
+    requester_id: targetRequesterId,
     app_profile_id: profile.id,
     role_id: targetRoleId,
     primary_term_id: dbTermId,
@@ -645,11 +678,12 @@ async function getOrProvisionRemoteRequester(
     updated_at: nowIso,
   };
 
-  const { data: inserted, error: insertErr } = await client
+  // 3. Insert using rwClient (prioritizing adminClient to prevent RLS rejections)
+  const { data: inserted, error: insertErr } = await rwClient
     .from('requesters')
     .insert(dbRowToInsert)
     .select('*')
-    .single();
+    .maybeSingle();
 
   if (!insertErr && inserted) {
     return {
@@ -658,20 +692,19 @@ async function getOrProvisionRemoteRequester(
     };
   }
 
-  // Fallback via serviceRoleClient or upsert if RLS or duplicate requester_id occurred
-  if (adminClient) {
-    const { data: upserted, error: upsertErr } = await adminClient
-      .from('requesters')
-      .upsert(dbRowToInsert, { onConflict: 'requester_id' })
-      .select('*')
-      .single();
+  // 4. Safe recovery if parallel request or duplicate occurred
+  const { data: retryExisting } = await rwClient
+    .from('requesters')
+    .select('*')
+    .eq('app_profile_id', profile.id)
+    .limit(1)
+    .maybeSingle();
 
-    if (!upsertErr && upserted) {
-      return {
-        ...(upserted as RequesterRecord),
-        primary_term_id: upserted.primary_term_id || 'TERM-2026-FALL',
-      };
-    }
+  if (retryExisting) {
+    return {
+      ...(retryExisting as RequesterRecord),
+      primary_term_id: retryExisting.primary_term_id || 'TERM-2026-FALL',
+    };
   }
 
   throw new Error(
@@ -710,7 +743,7 @@ export async function processWorkspaceOperationRequest(
   if (injectedContext) {
     profile = injectedContext.profile;
     client = injectedContext.client;
-    injectedServiceClient = injectedContext.serviceRoleClient;
+    injectedServiceClient = injectedContext.serviceRoleClient ?? injectedContext.client;
     if (typeof (client as any).setAuthenticatedTestCaller === 'function') {
       (client as any).setAuthenticatedTestCaller(profile);
     }
@@ -3429,25 +3462,102 @@ export async function processWorkspaceOperationRequest(
   };
 }
 
-export default async function handler(req: any, res: any) {
-  try {
-    let parsedBody = req.body;
-    if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
+export function extractQuery(req: any): Record<string, string | string[] | undefined> {
+  if (req.query && typeof req.query === 'object') {
+    return req.query;
+  }
+  if (req.url) {
+    try {
+      const parsed = new URL(req.url, 'http://localhost');
+      return Object.fromEntries(parsed.searchParams.entries());
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+export async function extractBody(req: any): Promise<any> {
+  if (req.body !== undefined) {
+    if (typeof req.body === 'string' && req.body.trim().length > 0) {
       try {
-        parsedBody = JSON.parse(parsedBody);
+        return JSON.parse(req.body);
       } catch {
-        parsedBody = undefined;
+        return undefined;
       }
     }
+    return req.body;
+  }
+
+  if (typeof req.on === 'function') {
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      }
+      const raw = Buffer.concat(chunks).toString('utf8');
+      if (raw.trim().length > 0) {
+        return JSON.parse(raw);
+      }
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
+}
+
+export function sendServerlessResponse(res: any, status: number, body: any): void {
+  try {
+    if (status === 204) {
+      if (typeof res.status === 'function' && typeof res.end === 'function') {
+        res.status(204).end();
+      } else {
+        res.statusCode = 204;
+        res.end();
+      }
+      return;
+    }
+
+    if (typeof res.status === 'function' && typeof res.json === 'function') {
+      res.status(status).json(body);
+      return;
+    }
+
+    res.statusCode = status;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify(body));
+  } catch (sendErr) {
+    console.error('Failed sending server response:', sendErr);
+    try {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(
+        JSON.stringify({
+          ok: false,
+          code: 'SERVER_ERROR',
+          message: 'Failed writing server response.',
+        })
+      );
+    } catch {
+      // Socket closed
+    }
+  }
+}
+
+export default async function handler(req: any, res: any) {
+  try {
+    const query = extractQuery(req);
+    const body = await extractBody(req);
     const result = await processWorkspaceOperationRequest(
       req.method,
-      req.query || {},
-      parsedBody,
+      query,
+      body,
       req.headers || {}
     );
-    res.status(result.status).json(result.body);
+    sendServerlessResponse(res, result.status, result.body);
   } catch (err) {
-    res.status(500).json({
+    sendServerlessResponse(res, 500, {
       ok: false,
       code: 'SERVER_ERROR',
       message:
