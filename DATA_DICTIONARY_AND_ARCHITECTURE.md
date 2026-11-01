@@ -3,9 +3,9 @@
 ## 1. Dataset Configuration
 
 - **Generator Seed:** `20261022`
-- **Anchor Timestamp:** `2026-09-01T08:00:00.000Z`
+- **Anchor Timestamp:** `2026-09-01T13:30:00+05:30` (ISO 8601 with explicit IST offset)
 - **Generation Command:** `npm run generate:dataset`
-- **Randomness:** Deterministic generation using Mulberry32.
+- **Comprehensive Reference:** See the standalone [Official Data Dictionary (All 11 Entities)](DATA_DICTIONARY.md) for field-level constraints, validation regex, and cardinalities.
 
 ### Dataset Summary
 
@@ -14,14 +14,14 @@
 | Requesters | 500 |
 | Roles | 5 |
 | Academic Terms | 4 |
-| Policy Documents | 12 |
+| Policy Documents | 24 |
 | Knowledge Articles | 200 |
 | Categories | 4 |
 | Tickets | 5,000 |
 | Messages | 20,000 |
-| Assignments | 5,000 |
+| Assignments | 5,399 |
 | SLAs | 5,000 |
-| Resolution Feedback | 3,600 |
+| Resolution Feedback | 2,667 |
 
 All records are synthetically generated for demonstration and evaluation.
 
