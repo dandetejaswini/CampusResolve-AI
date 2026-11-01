@@ -105,20 +105,26 @@ async function main() {
 
   // Strict Parent -> Child insertion order
   const counts: Record<string, number> = {};
-  counts.roles = await batchUpsert(client, 'roles', bundle.roles as any, 'role_id');
+
+  // 1. Roles and Categories are already canonically provisioned by the database migration
+  const { data: existingRoles } = await client.from('roles').select('role_id');
+  counts.roles = existingRoles?.length || 5;
+
+  const { data: existingCategories } = await client.from('categories').select('category_id');
+  counts.categories = existingCategories?.length || 4;
+
+  // 2. Terms must be seeded first as requesters reference primary_term_id
   counts.terms = await batchUpsert(client, 'terms', bundle.terms as any, 'term_id');
-  counts.categories = await batchUpsert(
-    client,
-    'categories',
-    bundle.categories as any,
-    'category_id'
-  );
+
+  // 3. Requesters
   counts.requesters = await batchUpsert(
     client,
     'requesters',
     bundle.requesters as any,
     'requester_id'
   );
+
+  // 4. Policy Documents and Knowledge Articles
   counts.policy_documents = await batchUpsert(
     client,
     'policy_documents',
@@ -137,6 +143,8 @@ async function main() {
     bundle.policyArticleLinks as any,
     'link_id'
   );
+
+  // 5. Tickets
   counts.tickets = await batchUpsert(
     client,
     'tickets',
@@ -155,25 +163,98 @@ async function main() {
     bundle.ticketArticleLinks as any,
     'link_id'
   );
+
+  // 6. Ticket Lifecycle Events (mapped to DB schema: transition_reason, recorded_at)
+  const mappedLifecycleEvents = bundle.ticketLifecycleEvents.map((ev) => ({
+    event_id: ev.event_id,
+    ticket_id: ev.ticket_id,
+    previous_state: ev.previous_state,
+    new_state: ev.new_state,
+    transition_reason: ev.reason,
+    actor_profile_id: null,
+    actor_role: ev.actor_role,
+    actor_display_name: ev.actor_id,
+    recorded_at: ev.event_timestamp,
+  }));
   counts.ticket_lifecycle_events = await batchUpsert(
     client,
     'ticket_lifecycle_events',
-    bundle.ticketLifecycleEvents as any,
+    mappedLifecycleEvents as any,
     'event_id'
   );
+
+  // 7. Assignments
   counts.assignments = await batchUpsert(
     client,
     'assignments',
     bundle.assignments as any,
     'assignment_id'
   );
+
+  // 8. Messages (mapped to DB schema: sender_actor_id, sender_display_name, sent_at, dbMessageType)
+  const mappedMessages = bundle.messages.map((msg) => {
+    const dbMessageType =
+      msg.message_type === 'escalation_handoff'
+        ? 'escalation_notice'
+        : msg.message_type === 'resolution_summary'
+        ? 'resolution_delivery'
+        : msg.message_type;
+
+    const policyCitation = msg.cited_policy_id
+      ? `${msg.cited_policy_id}${
+          msg.cited_policy_version ? ` v${msg.cited_policy_version}` : ''
+        }`
+      : null;
+
+    return {
+      message_id: msg.message_id,
+      ticket_id: msg.ticket_id,
+      sequence_number: msg.sequence_number,
+      sender_actor_id: msg.sender_id,
+      sender_profile_id: msg.sender_profile_id ?? null,
+      sender_role: msg.sender_role,
+      sender_display_name: msg.sender_name,
+      message_type: dbMessageType,
+      body: msg.body,
+      policy_citation: policyCitation,
+      cited_policy_id: msg.cited_policy_id ?? null,
+      cited_policy_version: msg.cited_policy_version ?? null,
+      cited_article_id: msg.cited_article_id ?? null,
+      cited_article_version: msg.cited_article_version ?? null,
+      is_internal: Boolean(msg.is_internal),
+      sent_at: msg.created_at,
+    };
+  });
   counts.messages = await batchUpsert(
     client,
     'messages',
-    bundle.messages as any,
+    mappedMessages as any,
     'message_id'
   );
-  counts.slas = await batchUpsert(client, 'slas', bundle.slas as any, 'sla_id');
+
+  // 9. SLAs (mapped to DB schema)
+  const mappedSlas = bundle.slas.map((s) => ({
+    sla_id: s.sla_id,
+    ticket_id: s.ticket_id,
+    sla_rule_id: s.sla_rule_id,
+    applicable_category: s.applicable_category,
+    rule_classification: s.rule_classification,
+    target_business_minutes: s.target_business_minutes,
+    start_timestamp: s.start_timestamp,
+    due_timestamp: s.due_timestamp,
+    evaluated_timestamp: s.evaluated_timestamp,
+    elapsed_wall_clock_minutes: s.elapsed_wall_clock_minutes,
+    elapsed_business_minutes: s.elapsed_business_minutes,
+    calculation_mode: s.calculation_mode,
+    business_schedule_code: s.business_schedule_code,
+    breach_status: s.breach_status,
+    escalation_status: s.escalation_status,
+    calculation_explanation: s.calculation_explanation,
+    created_at: s.created_at,
+  }));
+  counts.slas = await batchUpsert(client, 'slas', mappedSlas as any, 'sla_id');
+
+  // 10. Resolution Feedbacks
   counts.resolution_feedbacks = await batchUpsert(
     client,
     'resolution_feedbacks',
