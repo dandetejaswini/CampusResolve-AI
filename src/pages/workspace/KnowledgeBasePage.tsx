@@ -314,23 +314,35 @@ export const KnowledgeBasePage: React.FC = () => {
             <span>
               {policies.length} Policy Documents · {totalArticles} Knowledge Articles Indexed
             </span>
+            <span aria-hidden="true">·</span>
+            <span className="font-semibold text-[#292A25]">
+              {actorMeta.label} View
+            </span>
           </div>
           <h1 className="font-serif-display text-2xl md:text-3xl text-[#292A25] tracking-tight">
             Knowledge Base
           </h1>
           <p className="text-sm text-[#292A25]/70">
-            Versioned institutional policy documents and operational knowledge articles with effective-date applicability tracking and citation references.
+            Versioned institutional policy documents and operational knowledge articles with effective-date applicability tracking and citation references across all institutional profiles.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {(canPublishPolicy || canProposeRevision) && (
+          {canPublishPolicy || canProposeRevision ? (
             <Button
               variant={canPublishPolicy ? 'primary' : 'outline'}
               leftIcon={<FilePlus2 className="w-4 h-4" />}
               onClick={() => setPublishDialogOpen(true)}
             >
               {canPublishPolicy ? 'Register Policy Document' : 'Propose Policy Note'}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              leftIcon={<BookOpen className="w-4 h-4" />}
+              onClick={() => navigate('/workspace/assistant')}
+            >
+              Ask Policy Assistant
             </Button>
           )}
         </div>

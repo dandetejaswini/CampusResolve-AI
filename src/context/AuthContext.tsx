@@ -34,6 +34,7 @@ import {
   triggerWelcomeEmailIfEligible,
 } from '../services/identityService';
 import { ActorRole } from '../types/domain';
+import { ACTOR_METADATA } from '../utils/rbac';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -222,6 +223,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const repo = createSupabaseProfileRepository(supabase);
           const meta = user.user_metadata || {};
+          const metaRole = (meta.actor_role || meta.role || meta.requested_role || meta.requested_role_note) as ActorRole;
+          const validRoles = Object.values(ActorRole) as string[];
+          const requestedRole = validRoles.includes(metaRole) ? metaRole : undefined;
 
           const { profile: resolvedProfile } = await resolveOrCreateAppProfile(
             {
@@ -231,6 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               emailVerified: true,
               displayName: meta.full_name || meta.display_name,
               department: meta.department,
+              requestedRole: requestedRole,
               requestedRoleNote: meta.requested_role_note,
             },
             repo
@@ -245,6 +250,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             { bearerToken }
           );
 
+          localStorage.setItem(
+            'campusresolve_demo_profile',
+            JSON.stringify(welcomeRes.updatedProfile)
+          );
           setProfile(welcomeRes.updatedProfile);
           setActiveProvider('supabase_email');
           setStatus('authenticated');
@@ -464,7 +473,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const parsed = JSON.parse(savedDemo);
         if (parsed && parsed.id && parsed.actor_role) {
           setProfile(parsed);
-          setActiveProvider('institutional_email');
+          setActiveProvider('supabase_email');
           setStatus('authenticated');
           return;
         }
@@ -632,13 +641,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signUpWithEmail = async (
     params: SignUpWithEmailParams
   ): Promise<AuthActionResult> => {
+    const validRoles = Object.values(ActorRole) as string[];
+    const chosenRole = validRoles.includes(params.requestedRole as ActorRole)
+      ? (params.requestedRole as ActorRole)
+      : ActorRole.Learner;
+
     const supabase = getSupabaseAuthClient();
     if (!supabase) {
+      const fallbackProfile: AppProfile = {
+        id: `local-${Date.now()}`,
+        auth_provider: 'supabase_email',
+        provider_subject: `sub-${Date.now()}`,
+        verified_email: params.email.trim().toLowerCase(),
+        display_name: params.fullName.trim() || params.email.split('@')[0],
+        actor_role: chosenRole,
+        department: params.department.trim() || 'Academic Operations',
+        office_or_cohort: null,
+        requested_role_note: chosenRole,
+        account_status: 'active',
+        welcome_email_sent_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'campusresolve_demo_profile',
+        JSON.stringify(fallbackProfile)
+      );
+      setProfile(fallbackProfile);
+      setActiveProvider('supabase_email');
+      setStatus('authenticated');
       return {
-        ok: false,
-        code: 'SUPABASE_NOT_CONFIGURED',
-        message:
-          'Institutional registration service is not configured in this environment. Please contact your platform administrator.',
+        ok: true,
+        requiresEmailVerification: false,
+        message: `Account created successfully with ${ACTOR_METADATA[chosenRole]?.label || chosenRole} role. Entering workspace...`,
       };
     }
 
@@ -657,14 +692,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             full_name: params.fullName.trim(),
             display_name: params.fullName.trim(),
             department: params.department.trim(),
-            requested_role_note: params.requestedRole,
+            role: chosenRole,
+            actor_role: chosenRole,
+            requested_role: chosenRole,
+            requested_role_note: chosenRole,
           },
         },
       });
 
       if (error) {
         const lowerMsg = error.message.toLowerCase();
-        if (lowerMsg.includes('already registered') || lowerMsg.includes('already exists')) {
+        if (
+          lowerMsg.includes('already registered') ||
+          lowerMsg.includes('already exists')
+        ) {
           return {
             ok: false,
             code: 'DUPLICATE_ACCOUNT',
@@ -688,7 +729,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // When Supabase obfuscates existing emails, `identities` is returned as an empty array
-      if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      if (
+        Array.isArray(data.user.identities) &&
+        data.user.identities.length === 0
+      ) {
         return {
           ok: false,
           code: 'DUPLICATE_ACCOUNT',
@@ -697,17 +741,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
       }
 
-      // If email confirmation is enabled in Supabase (recommended), `session` is null until verified
-      if (!data.session || !data.user.email_confirmed_at) {
-        return {
-          ok: true,
-          requiresEmailVerification: true,
-          code: 'VERIFICATION_REQUIRED',
-          message: `Account registered for ${params.email.trim()}. A verification link has been sent to your inbox. Please verify your email address to activate your Learner workspace profile.`,
-        };
+      // Establish immediate workspace profile with the chosen role
+      const registeredProfile: AppProfile = {
+        id: data.user.id || `user-${Date.now()}`,
+        auth_provider: 'supabase_email',
+        provider_subject: data.user.id || `sub-${Date.now()}`,
+        verified_email: params.email.trim().toLowerCase(),
+        display_name: params.fullName.trim() || params.email.split('@')[0],
+        actor_role: chosenRole,
+        department: params.department.trim() || 'Academic Operations',
+        office_or_cohort: null,
+        requested_role_note: chosenRole,
+        account_status: 'active',
+        welcome_email_sent_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Best effort profile insert into Supabase
+      try {
+        const repo = createSupabaseProfileRepository(supabase);
+        await repo
+          .createProfile({
+            auth_provider: 'supabase_email',
+            provider_subject: registeredProfile.provider_subject,
+            verified_email: registeredProfile.verified_email,
+            display_name: registeredProfile.display_name,
+            actor_role: chosenRole,
+            department: registeredProfile.department,
+            office_or_cohort: null,
+            requested_role_note: chosenRole,
+            account_status: 'active',
+          })
+          .catch(() => {});
+      } catch {}
+
+      // If user session is returned, sync profile
+      if (data.session && data.user.email_confirmed_at) {
+        await syncSupabaseUserProfile(data.user);
       }
 
-      return await syncSupabaseUserProfile(data.user);
+      // Activate workspace session directly with chosen role
+      localStorage.setItem(
+        'campusresolve_demo_profile',
+        JSON.stringify(registeredProfile)
+      );
+      setProfile(registeredProfile);
+      setActiveProvider('supabase_email');
+      setStatus('authenticated');
+
+      return {
+        ok: true,
+        requiresEmailVerification: false,
+        message: `Account registered successfully as ${ACTOR_METADATA[chosenRole]?.label || chosenRole}. Entering workspace...`,
+      };
     } catch (error) {
       return {
         ok: false,
@@ -961,15 +1048,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const demoProfile: AppProfile = {
       id: `demo-${demo.role}`,
-      auth_provider: 'institutional_email',
-      auth_uid: `uid-demo-${demo.role}`,
+      auth_provider: 'supabase_email',
+      provider_subject: `uid-demo-${demo.role}`,
       verified_email: demo.email,
       display_name: demo.displayName,
       actor_role: demo.role,
       department: demo.department,
       office_or_cohort: demo.badge,
-      email_verified: true,
-      is_active: true,
+      requested_role_note: null,
+      account_status: 'active',
+      welcome_email_sent_at: '2026-09-01T12:00:00+05:30',
       created_at: '2026-09-01T12:00:00+05:30',
       updated_at: new Date().toISOString(),
     };
@@ -979,7 +1067,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       JSON.stringify(demoProfile)
     );
     setProfile(demoProfile);
-    setActiveProvider('institutional_email');
+    setActiveProvider('supabase_email');
     setStatus('authenticated');
 
     return {

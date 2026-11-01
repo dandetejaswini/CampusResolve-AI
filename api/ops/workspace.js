@@ -29281,8 +29281,8 @@ async function processWorkspaceOperationRequest(method, query, body, headers, in
       const activeRoles = rolesRes.data && rolesRes.data.length > 0 ? rolesRes.data : fallbackCorpus.roles;
       const activeTerms = termsRes.data && termsRes.data.length > 0 ? termsRes.data : fallbackCorpus.terms;
       const activeCategories = categoriesRes.data && categoriesRes.data.length > 0 ? categoriesRes.data : fallbackCorpus.categories;
-      const allPolicies = policiesRes.data || [];
-      const allArticles = articlesRes.data || [];
+      const allPolicies = policiesRes.data && policiesRes.data.length > 0 ? policiesRes.data : fallbackCorpus.policyDocuments;
+      const allArticles = articlesRes.data && articlesRes.data.length > 0 ? articlesRes.data : fallbackCorpus.knowledgeArticles;
       const kbPage = Math.max(1, Number(query.kbPage) || 1);
       const kbPageSize = Math.min(
         50,

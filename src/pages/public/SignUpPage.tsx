@@ -67,17 +67,8 @@ export const SignUpPage: React.FC = () => {
         requestedRole: formState.role,
       });
 
-      if (result.ok && !result.requiresEmailVerification) {
+      if (result.ok) {
         navigate('/workspace/dashboard', { replace: true });
-        return;
-      }
-
-      if (result.ok && result.requiresEmailVerification) {
-        setFeedback({
-          type: 'verification',
-          title: 'Verify Your Institutional Email',
-          message: result.message,
-        });
         return;
       }
 
@@ -240,7 +231,7 @@ export const SignUpPage: React.FC = () => {
           </div>
 
           <SelectField
-            label="Requested Institutional Role (Recorded for Review)"
+            label="Institutional Role"
             required
             placeholder="Select actor role..."
             options={ROLE_OPTIONS}
@@ -249,7 +240,7 @@ export const SignUpPage: React.FC = () => {
               setFormState({ ...formState, role: e.target.value })
             }
             error={errors.role}
-            helperText="New accounts begin with standard Learner access. Selecting an instructor, staff, or administrator role records your role request for institutional review."
+            helperText="Your workspace view and permissions will open directly tailored to your selected institutional role."
           />
 
           <InputField

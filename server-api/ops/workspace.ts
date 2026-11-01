@@ -960,8 +960,16 @@ export async function processWorkspaceOperationRequest(
         categoriesRes.data && categoriesRes.data.length > 0
           ? (categoriesRes.data as CategoryRecord[])
           : fallbackCorpus.categories;
-      const allPolicies = (policiesRes.data || []) as PolicyDocumentRecord[];
-      const allArticles = (articlesRes.data || []) as KnowledgeArticleRecord[];
+      const allPolicies = (
+        policiesRes.data && policiesRes.data.length > 0
+          ? policiesRes.data
+          : fallbackCorpus.policyDocuments
+      ) as PolicyDocumentRecord[];
+      const allArticles = (
+        articlesRes.data && articlesRes.data.length > 0
+          ? articlesRes.data
+          : fallbackCorpus.knowledgeArticles
+      ) as KnowledgeArticleRecord[];
 
       // Pagination for Knowledge Base articles (default page 1, pageSize 25)
       const kbPage = Math.max(1, Number(query.kbPage) || 1);

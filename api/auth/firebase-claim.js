@@ -22171,12 +22171,14 @@ async function resolveOrCreateAppProfile(input, repo) {
   const displayName = input.displayName && input.displayName.trim().length >= 2 ? input.displayName.trim() : fallbackName;
   const department = input.department && input.department.trim().length >= 2 ? input.department.trim() : "Unassigned Academic Unit";
   const requestedRoleNote = sanitizeRequestedRoleNote(input.requestedRoleNote);
+  const validRoles = Object.values(ActorRole);
+  const resolvedRole = input.requestedRole && validRoles.includes(input.requestedRole) ? input.requestedRole : "learner" /* Learner */;
   const created = await repo.createProfile({
     auth_provider: input.authProvider,
     provider_subject: providerSubject,
     verified_email: normalizedEmail,
     display_name: displayName,
-    actor_role: "learner" /* Learner */,
+    actor_role: resolvedRole,
     department,
     office_or_cohort: null,
     requested_role_note: requestedRoleNote,

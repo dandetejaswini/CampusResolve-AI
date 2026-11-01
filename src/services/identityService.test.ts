@@ -179,6 +179,28 @@ describe('Phase 2 Unified Identity & Google Apps Script + Gmail Welcome Email Se
     assert.equal(profile.account_status, 'active');
   });
 
+  it('Flow A (Supabase Email/Password): provisions profile with user-selected institutional role when requestedRole is supplied', async () => {
+    const repo = createInMemoryProfileRepo();
+    const supabaseUuid = '550e8400-e29b-41d4-a716-446655440099';
+
+    const { profile, isNewProfile } = await resolveOrCreateAppProfile(
+      {
+        authProvider: 'supabase_email',
+        providerSubject: supabaseUuid,
+        email: 'arthur.faculty@university.edu',
+        emailVerified: true,
+        displayName: 'Dr. Arthur Faculty',
+        department: 'Mathematics',
+        requestedRole: ActorRole.Instructor,
+      },
+      repo
+    );
+
+    assert.equal(isNewProfile, true);
+    assert.equal(profile.actor_role, ActorRole.Instructor);
+    assert.equal(profile.display_name, 'Dr. Arthur Faculty');
+  });
+
   it('Flow A (Supabase Email/Password): rejects unverified email addresses before workspace access', async () => {
     const repo = createInMemoryProfileRepo();
 

@@ -36,6 +36,7 @@ export interface ProviderIdentityInput {
   emailVerified: boolean;
   displayName?: string;
   department?: string;
+  requestedRole?: ActorRole;
   requestedRoleNote?: string | null;
 }
 
@@ -90,7 +91,7 @@ export interface ProfileRepository {
     provider_subject: string;
     verified_email: string;
     display_name: string;
-    actor_role: ActorRole.Learner;
+    actor_role: ActorRole;
     department: string;
     office_or_cohort: string | null;
     requested_role_note: string | null;
@@ -219,12 +220,20 @@ export async function resolveOrCreateAppProfile(
       : 'Unassigned Academic Unit';
   const requestedRoleNote = sanitizeRequestedRoleNote(input.requestedRoleNote);
 
+  // If requestedRole is explicitly provided and valid, assign it to the new profile.
+  // Otherwise default to ActorRole.Learner.
+  const validRoles = Object.values(ActorRole) as string[];
+  const resolvedRole =
+    input.requestedRole && validRoles.includes(input.requestedRole)
+      ? (input.requestedRole as ActorRole)
+      : ActorRole.Learner;
+
   const created = await repo.createProfile({
     auth_provider: input.authProvider,
     provider_subject: providerSubject,
     verified_email: normalizedEmail,
     display_name: displayName,
-    actor_role: ActorRole.Learner,
+    actor_role: resolvedRole,
     department,
     office_or_cohort: null,
     requested_role_note: requestedRoleNote,
