@@ -33,6 +33,7 @@ import {
   updateOwnAppProfile,
   triggerWelcomeEmailIfEligible,
 } from '../services/identityService';
+import { ActorRole } from '../types/domain';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -58,6 +59,70 @@ export interface AuthEnvStatus {
   missingFirebaseVars: string[];
 }
 
+export interface DemoAccountConfig {
+  role: ActorRole;
+  label: string;
+  roleTitle: string;
+  badge: string;
+  email: string;
+  displayName: string;
+  department: string;
+  description: string;
+}
+
+export const INSTITUTIONAL_DEMO_ACCOUNTS: DemoAccountConfig[] = [
+  {
+    role: ActorRole.Learner,
+    label: 'Student / Learner',
+    roleTitle: 'Enrolled Student',
+    badge: 'Undergraduate Cohort',
+    email: 'maya.patel@campusresolve.edu',
+    displayName: 'Maya Patel (Student Demo)',
+    department: 'Computer Science & Engineering',
+    description: 'Submit requests, check policy-grounded RAG assistance, and view business-hour SLA timers.',
+  },
+  {
+    role: ActorRole.Instructor,
+    label: 'Instructor / Faculty',
+    roleTitle: 'Faculty Member',
+    badge: 'Mathematics Faculty',
+    email: 'arthur.pendelton@campusresolve.edu',
+    displayName: 'Dr. Arthur Pendelton (Faculty Demo)',
+    department: 'Department of Mathematics',
+    description: 'Submit instructional course petitions, student case attestations, and policy clarifications.',
+  },
+  {
+    role: ActorRole.SupportStaff,
+    label: 'Operations Staff',
+    roleTitle: 'Triage Specialist',
+    badge: 'Registrar Operations Desk',
+    email: 'elena.rostova@campusresolve.edu',
+    displayName: 'Elena Rostova (Staff Demo)',
+    department: 'Student Affairs & Registrar Operations',
+    description: 'Triage support queues, evaluate ticket routing destinations, and track SLA escalations.',
+  },
+  {
+    role: ActorRole.AcademicAdministrator,
+    label: 'Academic Administrator / Dean',
+    roleTitle: 'Academic Dean & Ombuds',
+    badge: 'Provost Case Review Office',
+    email: 'eleanor.sterling@campusresolve.edu',
+    displayName: 'Dean Eleanor Sterling (Admin Demo)',
+    department: 'Office of the Provost & Academic Affairs',
+    description: 'Adjudicate administrative policy appeals, approve escalations, and manage policy versions.',
+  },
+  {
+    role: ActorRole.PlatformAdministrator,
+    label: 'Platform Administrator',
+    roleTitle: 'System & Routing Admin',
+    badge: 'Institutional Governance',
+    email: 'marcus.chen@campusresolve.edu',
+    displayName: 'Marcus Chen (Platform Demo)',
+    department: 'Campus IT & Institutional Governance',
+    description: 'Configure SLA schedules, inspect routing rules, and execute reproducibility benchmarks.',
+  },
+];
+
 export interface AuthContextValue {
   status: AuthStatus;
   profile: AppProfile | null;
@@ -69,6 +134,7 @@ export interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<AuthActionResult>;
   signUpWithEmail: (params: SignUpWithEmailParams) => Promise<AuthActionResult>;
   signInWithGoogle: () => Promise<AuthActionResult>;
+  signInDemoAccount: (role: ActorRole) => Promise<AuthActionResult>;
   requestPasswordReset: (email: string) => Promise<AuthActionResult>;
   updatePassword: (newPassword: string) => Promise<AuthActionResult>;
   updateProfile: (updates: ProfileUpdateInput) => Promise<AuthActionResult>;
@@ -390,6 +456,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Restore existing Supabase or Firebase session on initial load & subscribe to auth events
   useEffect(() => {
     let isMounted = true;
+
+    // Check for saved demo account profile
+    const savedDemo = localStorage.getItem('campusresolve_demo_profile');
+    if (savedDemo) {
+      try {
+        const parsed = JSON.parse(savedDemo);
+        if (parsed && parsed.id && parsed.actor_role) {
+          setProfile(parsed);
+          setActiveProvider('institutional_email');
+          setStatus('authenticated');
+          return;
+        }
+      } catch {}
+    }
+
     const supabase = getSupabaseAuthClient();
     const fbBundle = getFirebaseAuthClient();
 
@@ -873,7 +954,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const signInDemoAccount = useCallback(async (role: ActorRole): Promise<AuthActionResult> => {
+    const demo =
+      INSTITUTIONAL_DEMO_ACCOUNTS.find((d) => d.role === role) ||
+      INSTITUTIONAL_DEMO_ACCOUNTS[0];
+
+    const demoProfile: AppProfile = {
+      id: `demo-${demo.role}`,
+      auth_provider: 'institutional_email',
+      auth_uid: `uid-demo-${demo.role}`,
+      verified_email: demo.email,
+      display_name: demo.displayName,
+      actor_role: demo.role,
+      department: demo.department,
+      office_or_cohort: demo.badge,
+      email_verified: true,
+      is_active: true,
+      created_at: '2026-09-01T12:00:00+05:30',
+      updated_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem(
+      'campusresolve_demo_profile',
+      JSON.stringify(demoProfile)
+    );
+    setProfile(demoProfile);
+    setActiveProvider('institutional_email');
+    setStatus('authenticated');
+
+    return {
+      ok: true,
+      message: `Signed in as ${demo.label}. Workspace role view has been activated.`,
+    };
+  }, []);
+
   const signOut = useCallback(async () => {
+    localStorage.removeItem('campusresolve_demo_profile');
     const supabase = getSupabaseAuthClient();
     const fbBundle = getFirebaseAuthClient();
 
@@ -902,6 +1018,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         signInWithEmail,
         signUpWithEmail,
         signInWithGoogle,
+        signInDemoAccount,
         requestPasswordReset,
         updatePassword,
         updateProfile,

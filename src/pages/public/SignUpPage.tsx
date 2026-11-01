@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { ActorRole } from '../../types/domain';
 import { ACTOR_METADATA } from '../../utils/rbac';
 import { useAuth } from '../../context/AuthContext';
+import { QuickDemoAccounts } from '../../components/auth/QuickDemoAccounts';
 import { SignUpFormInput, validateSignUpForm } from '../../utils/validation';
 
 const ROLE_OPTIONS = Object.values(ActorRole).map((role) => ({
@@ -113,8 +114,8 @@ export const SignUpPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-16 md:py-20 flex justify-center">
-      <div className="w-full max-w-xl rounded-md surface-elevated p-8 md:p-10 flex flex-col gap-6">
+    <div className="max-w-7xl mx-auto px-6 py-12 md:py-20 flex justify-center">
+      <div className="w-full max-w-2xl rounded-md surface-elevated p-6 md:p-10 flex flex-col gap-6">
         <div className="flex flex-col gap-2 border-b border-[#292A25]/10 pb-5">
           <div className="flex items-center gap-2 text-xs font-medium text-[#777B63]">
             <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
@@ -124,12 +125,21 @@ export const SignUpPage: React.FC = () => {
             Create your CampusResolve AI account
           </h1>
           <p className="text-xs text-[#292A25]/70 leading-relaxed">
-            Register with your institutional email address or continue with
-            Google. New accounts are provisioned with standard{' '}
-            <strong>Learner</strong> access by default; requests for faculty,
-            support, or administrative roles are recorded for institutional
-            verification.
+            Want to test immediately? Select a demo role below to jump into the
+            role-specific workspace without registration, or create a new
+            account.
           </p>
+        </div>
+
+        {/* Quick Demo Accounts Component */}
+        <QuickDemoAccounts />
+
+        <div className="relative flex items-center justify-center">
+          <div className="border-t border-[#292A25]/12 w-full" />
+          <span className="bg-[#F8F7F3] px-3 text-xs text-[#292A25]/55 whitespace-nowrap">
+            or register a new account
+          </span>
+          <div className="border-t border-[#292A25]/12 w-full" />
         </div>
 
         {feedback && (

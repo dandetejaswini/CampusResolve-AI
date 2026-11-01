@@ -39,7 +39,7 @@ import {
   toDbLifecycleEventRow,
   toDbMessageRow,
   verifyRemotePhase3Schema,
-} from '../../api/ops/workspace';
+} from '../../server-api/ops/workspace';
 
 /**
  * Relational in-memory PostgreSQL table simulator that faithfully enforces

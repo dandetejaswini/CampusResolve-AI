@@ -26,11 +26,11 @@
 ### Scene 0: Opening & Architecture Overview (0:00 – 0:30)
 - **Time:** `0:00 – 0:30` (30 seconds)
 - **Visuals:**
-  1. Open on CampusResolve AI live homepage with clean institutional dark header and serif headline: *"Intelligent Academic Request Routing & Policy-Grounded Resolution"*.
+  1. Open on CampusResolve AI live application at `https://campus-resolve-ai-red.vercel.app/` with clean institutional header and serif headline: *"Intelligent Academic Request Routing & Policy-Grounded Resolution"*.
   2. Pan down to the architecture badges: *5,000 Deterministic Benchmark Tickets*, *20,000 Messages*, *24 Governing Policy Documents*, *Strict RLS & Multi-Actor Isolation*.
-  3. Click into **Open Workspace** and highlight the **Role Perspective Switcher** in the top navigation bar (`Learner`, `Instructor`, `Academic Administrator`, `Support Staff`, `Platform Administrator`).
+  3. Navigate to **Sign In** and highlight the **Quick Demo Accounts** grid offering one-click access for all 5 roles (`Learner`, `Instructor`, `Support Staff`, `Academic Administrator`, `Platform Administrator`). Click into the **Learner** role.
 - **Narration Script:**
-  > *"Welcome to CampusResolve AI. In modern universities, academic support is plagued by fragmented email queues, slow manual routing, outdated policy citations, and missed deadlines. CampusResolve AI solves this with an enterprise-grade platform uniting deterministic rule-based triage, date-aware policy retrieval, and a business-hour SLA engine. Today, we'll walk through four core operational workflows in under three minutes."*
+  > *"Welcome to CampusResolve AI at campus-resolve-ai-red.vercel.app. In modern universities, academic support is plagued by fragmented email queues, slow manual routing, outdated policy citations, and missed deadlines. CampusResolve AI solves this with an enterprise-grade platform uniting deterministic rule-based triage, date-aware policy retrieval, and a business-hour SLA engine. Today, we'll walk through four core operational workflows in under three minutes."*
 
 ---
 

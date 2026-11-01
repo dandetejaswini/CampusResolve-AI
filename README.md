@@ -1,57 +1,73 @@
 # CampusResolve AI
 
-Enterprise academic support and policy resolution platform designed for higher education institutions.
+Enterprise academic support and deterministic policy governance platform designed for higher education institutions.
 
-### Platform Overview
-- **Core Purpose**: Streamlines and orchestrates the end-to-end lifecycle of student and faculty academic requests.
-- **Institutional Domains**: Financial Aid, Registration & Records, IT Services, and Accessibility Accommodations.
-- **Key Capabilities**: Automated departmental triage, business-hour SLA deadline tracking, compliance anomaly detection, and immutable administrative audit trails.
+- **Live Production Application**: [https://campus-resolve-ai-red.vercel.app/](https://campus-resolve-ai-red.vercel.app/)
+- **GitHub Repository**: [https://github.com/dandetejaswini/CampusResolve-AI](https://github.com/dandetejaswini/CampusResolve-AI)
+
+---
+
+### Platform Highlights
+
+- **End-to-End Academic Support**: Orchestrates student petitions and faculty inquiries across Financial Aid, Registration, IT Services, and Accessibility.
+- **Date-Aware Policy RAG**: Grounds responses in active institutional policies while proactively rejecting expired or superseded versions.
+- **Business-Hour SLA Engine**: Tracks response and resolution deadlines using institutional business hours, excluding weekends and academic holidays.
+- **Role-Governed UI & Workflows**: Features and permissions are strictly bounded by authenticated institutional roles.
+- **One-Click Quick Demo Accounts**: Instant preview for all 5 institutional roles directly from the sign-in and sign-up pages.
+
+---
+
+### Institutional Roles
+
+- **Student / Learner**: Submits academic requests, consults policy-grounded AI guidance, and tracks SLA resolution timelines.
+- **Instructor / Faculty**: Submits course-related petitions, provides faculty attestations, and requests policy clarifications.
+- **Operations Support Staff**: Coordinates intake triage desk, assigns departmental queues, and manages SLA compliance.
+- **Academic Administrator / Dean**: Adjudicates complex escalations, approves policy exceptions, and oversees governing documentation.
+- **Platform Administrator**: Configures institutional operating hours, SLA target thresholds, and executes benchmark evaluations.
+
+---
 
 ### Policy-Grounded AI & Guardrails
-- **Retrieval-Augmented Generation (RAG)**: Grounds student and faculty inquiries in verified institutional policies and knowledge base articles.
-- **Authoritative Citations**: Directly references exact policy IDs, article numbers, and effective dates.
-- **Compliance Guardrails**: Automatically detects and rejects citations to expired or superseded policies.
-- **Hallucination Blocking**: Blocks unverified factual claims without citations and requests clarification for ambiguous student inquiries.
 
-### Multi-Actor Role Architecture
-- **Learner**: Submits academic petitions, tracks real-time progress, and provides post-resolution feedback.
-- **Instructor**: Coordinates classroom accommodations and provides faculty attestations for student appeals.
-- **Support Staff**: Triages incoming tickets, validates policy citations, and manages initial resolutions.
-- **Academic Administrator**: Reviews escalated cases, approves policy exceptions, and publishes governing documentation.
-- **Platform Administrator**: Configures institutional SLA rules, business hours, and monitors platform health.
-- **Role Switcher**: In-app role selector in the top navigation bar allows instant role switching for evaluation and review.
+- **Authoritative Citations**: Cites exact policy document identifiers, version numbers, and relevant section passages.
+- **Date & Version Awareness**: Checks policy lifecycle state against inquiry dates to exclude superseded guidance.
+- **Conflict & Ambiguity Handling**: Detects conflicting active rules, highlights discrepancies, and triggers human escalation.
+- **Deterministic Client Fallback**: Automatically provides local deterministic retrieval if external LLM APIs experience timeouts or latency.
 
-### Synthetic Benchmark & Evaluation
-- **Deterministic Generation**: Generated with fixed seed `20261022` and anchor date `2026-09-01T13:30:00+05:30`.
-- **Dataset Scale**: Exactly 5,000 tickets, 20,000 messages, 200 knowledge articles, and 24 policy documents.
-- **Realistic Surges**: Simulates peak term volumes (add/drop windows, financial aid deadlines) and diverse student writing styles.
-- **Benchmark Performance**: 98.6% overall accuracy, 100% precision, and a 0.9637 F1 score across 5 negative compliance scenarios.
+---
 
-### Getting Started & Local Development
-- **Clone & Install**:
+### Synthetic Benchmark & Reproducibility
+
+- **Fixed-Seed Generation**: Seed `20261022` with anchor date `2026-09-01T13:30:00+05:30`.
+- **Dataset Scale**: Exactly 5,000 tickets, 20,000 messages, 200 knowledge articles, and 24 policy documents across 11 core relational tables.
+- **Evaluation Performance**: Achieves 98.6% overall accuracy, 100% precision, and 0.9637 F1-score across 5 negative anomaly scenarios on held-out test data.
+
+---
+
+### Quick Start & Local Development
+
+- **Clone Repository**:
   ```bash
   git clone https://github.com/dandetejaswini/CampusResolve-AI.git
   cd CampusResolve-AI
   npm install
   ```
-- **Configuration**: Copy `.env.example` to `.env` and provide your Supabase and Firebase keys.
+- **Configure Environment**:
+  - Copy `.env.example` to `.env` and configure Supabase and Firebase keys.
 - **Run Application**:
-  - `npm run dev`: Launch local development server at `http://localhost:3000`.
-  - `npm test`: Run complete automated validation and regression suite (112 tests).
-  - `npm run lint`: Run TypeScript typechecks without emitting files.
-  - `npm run generate:dataset`: Deterministically regenerate synthetic benchmark dataset and checksums.
+  - `npm run dev`: Start local development server at `http://localhost:3000`.
+  - `npm test`: Execute complete test suite (112 / 112 passed).
+  - `npm run build`: Compile production client and serverless API bundles.
+  - `npm run generate:dataset`: Deterministically regenerate synthetic benchmark dataset.
 
-### Documentation & Reference Guides
-All technical architecture specifications and evaluation methodologies are organized in `docs/`:
+---
+
+### Technical Documentation Directory (`docs/`)
+
+- [Architecture & Design Decisions](docs/ARCHITECTURE_AND_DESIGN_DECISIONS.md) — High-level system architecture, dual-provider auth, and RAG design principles.
 - [Data Dictionary (All 11 Entities)](docs/DATA_DICTIONARY.md) — Comprehensive schema specifications, data types, constraints, and validation rules.
-- [Testing & Evaluation Methodology](docs/TESTING_AND_EVALUATION.md) — Baseline comparison metrics, confusion matrices, and validation reports.
-- [Architecture & Design Decisions](docs/ARCHITECTURE_AND_DESIGN_DECISIONS.md) — Technical architecture, state machine DAGs, and RAG design principles.
-- [Video Demonstration Script](docs/DEMO_VIDEO_SCRIPT.md) — Timed 2-minute 45-second screen walkthrough script and recording checklist.
-- [Setup & Cloud Architecture](docs/SETUP_AND_ARCHITECTURE.md) — Environment setup, Supabase PostgreSQL migrations, and Firebase Auth bridge.
-- [Synthetic Architecture & Schema Details](docs/DATA_DICTIONARY_AND_ARCHITECTURE.md) — Relational mappings, bridge tables, and generation mechanics.
-- [Limitations & Future Roadmap](docs/LIMITATIONS_AND_FUTURE_IMPROVEMENTS.md) — Current institutional constraints and planned SIS integrations.
-- [AI Usage & Prompt History](docs/AI_USAGE_AND_PROMPT_HISTORY.md) — Transparent disclosure of AI assistance and developer oversight.
-
-### Live Application
-- **Production URL**: [https://campus-resolve-ai.vercel.app](https://campus-resolve-ai.vercel.app)
-- **Live Features**: Role-based access switching, operational tickets, and policy-grounded query testing.
+- [Deployment & Setup Guide](docs/DEPLOYMENT_AND_SETUP_GUIDE.md) — Vercel production setup, live URL configuration, and Google Apps Script email webhook.
+- [Testing & Evaluation Methodology](docs/TESTING_AND_EVALUATION.md) — Baseline benchmarking, confusion matrices, and anomaly detection results.
+- [Limitations & Future Roadmap](docs/LIMITATIONS_AND_FUTURE_IMPROVEMENTS.md) — Institutional edge cases, OCR boundaries, and planned SIS connectors.
+- [AI Usage & Prompt History](docs/AI_USAGE_AND_PROMPT_HISTORY.md) — Traceability of AI engineering assistance and developer verification procedures.
+- [Demo Video Script](docs/DEMO_VIDEO_SCRIPT.md) — Structured 2-minute 45-second screen walkthrough script and recording checklist.

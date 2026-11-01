@@ -98,60 +98,33 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         </div>
       </div>
 
-      {/* Role Perspective Controls Toolbar */}
+      {/* Role-Governed Workspace Indicator */}
       <div className="pt-2.5 border-t border-[#292A25]/10 flex flex-wrap items-center justify-between gap-4 text-xs">
-        {/* Five Institutional Role Perspective Switcher */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[#292A25]/70 font-medium mr-1">
-            Role Perspective:
+          <span className="text-[#292A25]/70 font-medium">
+            Authenticated Role:
           </span>
-          <div
-            role="group"
-            aria-label="Select institutional role workspace perspective"
-            className="flex flex-wrap items-center gap-1 p-1 rounded-md bg-[#E8E4DC]/75 border border-[#292A25]/12"
-          >
-            {Object.values(ActorRole).map((role) => {
-              const meta = ACTOR_METADATA[role];
-              const isSelected = activeRole === role;
-              return (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => onRoleChange(role)}
-                  aria-pressed={isSelected}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                    isSelected
-                      ? 'bg-[#292A25] text-[#F8F7F3] shadow-2xs'
-                      : 'text-[#292A25]/75 hover:text-[#292A25] hover:bg-[#F8F7F3]/70'
-                  }`}
-                >
-                  {meta.label}
-                </button>
-              );
-            })}
-          </div>
+          <span className="px-2.5 py-1 rounded-md bg-[#292A25] text-[#F8F7F3] font-semibold text-xs inline-flex items-center gap-1.5 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#E8E4DC]"></span>
+            {authoritativeRoleMeta.label}
+          </span>
+          <span className="text-[#777B63] text-xs">
+            ({authoritativeRoleMeta.primaryResponsibility})
+          </span>
         </div>
 
-        {/* Account Role vs Preview Indicator */}
-        {profile && activeRole !== profile.actor_role ? (
-          <div className="flex items-center gap-2 text-xs text-[#777B63]">
-            <span>
-              Previewing <strong>{actorMeta.label}</strong> view (Your account role:{' '}
-              <strong>{authoritativeRoleMeta.label}</strong>)
-            </span>
-            <button
-              type="button"
-              onClick={() => onRoleChange(profile.actor_role)}
-              className="underline underline-offset-4 font-semibold text-[#292A25] hover:text-[#777B63] transition-colors"
-            >
-              Reset to My Role
-            </button>
-          </div>
-        ) : (
-          <div className="text-xs text-[#292A25]/60">
-            Active Role: <strong className="text-[#292A25]">{authoritativeRoleMeta.label}</strong>
-          </div>
-        )}
+        <div className="flex items-center gap-3 text-xs text-[#292A25]/70">
+          <span className="inline-flex items-center gap-1 text-[11px] bg-[#E8E4DC]/80 px-2 py-0.5 rounded border border-[#292A25]/10">
+            🔒 Role-Governed Access Enforced
+          </span>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="underline underline-offset-4 font-medium text-[#777B63] hover:text-[#292A25] transition-colors"
+          >
+            Switch Role Account
+          </button>
+        </div>
       </div>
     </header>
   );

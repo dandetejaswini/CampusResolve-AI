@@ -5,11 +5,11 @@ import { ActorRole } from '../types/domain';
 import {
   processPolicyAssistantRequest,
   type InjectedPolicyAssistantTestContext,
-} from '../../api/ai/policy-assistant';
+} from '../../server-api/ai/policy-assistant';
 import {
   getReferenceCorpus,
   type VerifiedCallerIdentity,
-} from '../../api/ops/workspace';
+} from '../../server-api/ops/workspace';
 import type {
   PolicyDocumentRecord,
   KnowledgeArticleRecord,
@@ -270,7 +270,7 @@ describe('Phase 6: AI Policy Assistant — 10 Core Verification Scenarios & Inte
     );
     assert.ok(excludedDetail);
     assert.equal(excludedDetail.version, '1.0');
-    assert.equal(excludedDetail.supersededByPolicyId, 'POL-FINAID-2026-002');
+    assert.equal((excludedDetail as any).supersededByPolicyId, 'POL-FINAID-2026-002');
     assert.ok(
       String(bodyA.answer).includes('POL-FINAID-2026-001') &&
         String(bodyA.answer).includes('POL-FINAID-2026-002')
@@ -307,7 +307,7 @@ describe('Phase 6: AI Policy Assistant — 10 Core Verification Scenarios & Inte
 
   it('Scenario 4: Identifies conflicting applicable policy sources and surfaces both without choosing arbitrarily', async () => {
     const basePolicy = dataset.policyDocuments.find(
-      (p) => p.policy_id === 'POL-FINAID-2026-002'
+      (p: PolicyDocumentRecord) => p.policy_id === 'POL-FINAID-2026-002'
     )!;
     const conflictingPolicyB: PolicyDocumentRecord = {
       ...basePolicy,
@@ -716,10 +716,10 @@ describe('Phase 6: AI Policy Assistant — 10 Core Verification Scenarios & Inte
     assert.equal(result.status, 200);
     const body = result.body;
 
-    const citedPolicy = body.citedSources.find(
+    const citedPolicy = body.citedSources!.find(
       (s: any) => s.id === 'POL-IT-2026-002'
     );
-    const citedKb = body.citedSources.find(
+    const citedKb = body.citedSources!.find(
       (s: any) => s.sourceType === 'article' && s.id.startsWith('KB-')
     );
     assert.ok(citedPolicy, 'Must cite active policy POL-IT-2026-002');

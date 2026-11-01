@@ -16,6 +16,8 @@ import {
   TicketLifecycleEventRecord,
   TicketRecord,
   WorkspaceNotificationRecord,
+  AIEvidenceStatus,
+  TicketPriorityLevel,
 } from '../types/phase3';
 import {
   CONFIGURABLE_SLA_RULES,
@@ -32,6 +34,8 @@ import {
   formatFeedbackId,
   createLifecycleEvent,
   evaluateTicketRouting,
+  retrieveApplicablePolicyEvidence,
+  resolveOfficialCategory,
 } from './workflowEngine';
 import {
   DETERMINISTIC_SEED,
@@ -276,12 +280,15 @@ export function getClientSideFallbackBootstrap(
           (t) => t.lifecycle_status === RequestStatus.Resolved
         ).length,
         unreadNotificationCount: 1,
-        slaComplianceRate: 0.986,
+        withinSlaCount: dataset.slas.filter((s) => !s.breach_status).length,
+        approachingSlaCount: approachingSlaDeadlineCount,
         breachedSlaCount,
-        pendingHumanReviewCount: 1,
-        approachingSlaDeadlineCount,
-        averageFirstResponseMinutes: 45,
-        averageResolutionHours: 18.5,
+        unresolvedEscalatedCount: dataset.tickets.filter(
+          (t) =>
+            (t.lifecycle_status === RequestStatus.Escalated || t.is_escalated) &&
+            t.lifecycle_status !== RequestStatus.Resolved &&
+            t.lifecycle_status !== RequestStatus.Closed
+        ).length,
       },
       tickets: dataset.tickets,
       messages: dataset.messages,
@@ -291,12 +298,15 @@ export function getClientSideFallbackBootstrap(
       resolutionFeedbacks: dataset.resolutionFeedbacks,
       notifications: [
         {
-          id: 'NOTIF-001',
+          notification_id: 'NOTIF-001',
           recipient_profile_id: activeProfile?.id || 'sys',
           ticket_id: dataset.tickets[0]?.ticket_id || 'TKT-2026-000001',
+          event_type: 'routing_assigned',
+          category: 'lifecycle',
           title: 'Workspace Active & Synchronized',
-          message:
+          summary:
             'Your institutional operational workspace is fully loaded and ready.',
+          policy_reference: null,
           is_read: false,
           created_at: '2026-09-01T13:30:00+05:30',
         },
@@ -311,22 +321,22 @@ export function getClientSideFallbackBootstrap(
         totalArticlesCount: dataset.knowledgeArticles.length,
         page: 1,
         pageSize: 10,
-        configurableSlaRules: CONFIGURABLE_SLA_RULES,
+        configurableSlaRules: Object.values(CONFIGURABLE_SLA_RULES),
         businessSchedule: DEFAULT_CONFIGURABLE_BUSINESS_SCHEDULE,
-        routingRules: DOCUMENTED_ROUTING_RULES,
+        routingRules: Object.values(DOCUMENTED_ROUTING_RULES),
       },
     };
   }
 
   if (activeProfile) {
-    cachedClientFallbackPayload.requester.display_name = activeProfile.display_name;
-    cachedClientFallbackPayload.requester.verified_email = activeProfile.verified_email;
-    cachedClientFallbackPayload.requester.department = activeProfile.department;
-    cachedClientFallbackPayload.requester.app_profile_id = activeProfile.id;
-    cachedClientFallbackPayload.requester.requester_id = `REQ-${activeProfile.id.slice(0, 8).toUpperCase()}`;
+    cachedClientFallbackPayload!.requester.display_name = activeProfile.display_name;
+    cachedClientFallbackPayload!.requester.verified_email = activeProfile.verified_email;
+    cachedClientFallbackPayload!.requester.department = activeProfile.department;
+    cachedClientFallbackPayload!.requester.app_profile_id = activeProfile.id;
+    cachedClientFallbackPayload!.requester.requester_id = `REQ-${activeProfile.id.slice(0, 8).toUpperCase()}`;
   }
 
-  const baseArticles = cachedClientFallbackPayload.knowledgeBase.articles;
+  const baseArticles = cachedClientFallbackPayload!.knowledgeBase.articles;
   let filteredArticles = baseArticles;
   if (params?.kbDomain) {
     filteredArticles = filteredArticles.filter((a) =>
@@ -347,9 +357,9 @@ export function getClientSideFallbackBootstrap(
   const paginatedArticles = filteredArticles.slice(start, start + pageSize);
 
   return {
-    ...cachedClientFallbackPayload,
+    ...cachedClientFallbackPayload!,
     knowledgeBase: {
-      ...cachedClientFallbackPayload.knowledgeBase,
+      ...cachedClientFallbackPayload!.knowledgeBase,
       articles: paginatedArticles,
       totalArticlesCount: filteredArticles.length,
       page,
@@ -385,69 +395,67 @@ export function createClientSideFallbackTicket(
   const ticketIndex = bootstrap.tickets.length + 1;
   const ticketId = formatTicketId(ticketIndex);
 
-  const routing = evaluateTicketRouting({
-    categoryName: input.category,
-    subject: input.subject,
-    body: input.description,
-  });
+  const catResolution = resolveOfficialCategory(null, input.category);
+  const detectedCategory = catResolution.category || 'Registration';
+  const categoryRule = DOCUMENTED_ROUTING_RULES[detectedCategory];
 
-  const priorityLevel =
+  const priorityLevel: TicketPriorityLevel =
     input.urgencyLevel === 'critical'
-      ? TicketPriorityLevel.Urgent
+      ? 'Administrative Escalation Priority'
       : input.urgencyLevel === 'high'
-      ? TicketPriorityLevel.High
-      : TicketPriorityLevel.Standard;
+      ? 'Time-Sensitive Academic Priority'
+      : 'Standard Priority';
 
   const initialStatus = input.saveAsDraft
     ? RequestStatus.Draft
     : RequestStatus.Submitted;
 
+  const routing = evaluateTicketRouting({
+    ticketId,
+    category: detectedCategory,
+    priority: priorityLevel,
+    subject: input.subject,
+    description: input.description,
+    assignedAtIso: nowIso,
+  });
+
   const ticket: TicketRecord = {
     ticket_id: ticketId,
     requester_id: bootstrap.requester.requester_id,
     requester_profile_id: activeProfile?.id || null,
-    category_id: routing.categoryRecord.category_id,
-    category_name: routing.categoryRecord.category_name,
+    category_id: categoryRule.category_id,
+    category_name: detectedCategory,
+    term_id: 'TERM-2026-FALL',
     subject: input.subject,
-    priority_level: priorityLevel,
+    description: input.description,
+    priority: priorityLevel,
     lifecycle_status: initialStatus,
-    current_assigned_team: routing.assignedTeam,
-    assigned_actor_id: null,
+    current_assigned_team: routing.assignment.assigned_team,
+    current_routing_rule_id: routing.assignment.routing_rule_id,
     referenced_policy_id: null,
     referenced_policy_version: null,
-    is_escalated: false,
-    escalation_reason: null,
+    referenced_article_id: null,
+    referenced_article_version: null,
+    requires_escalation: routing.requiresEscalation,
+    is_escalated: routing.requiresEscalation,
+    escalation_reason: routing.escalationReason,
     resolution_summary: null,
-    resolved_at: null,
+    is_synthetic_eval: false,
     submitted_at: nowIso,
     updated_at: nowIso,
+    resolved_at: null,
     closed_at: null,
-    is_synthetic_eval: false,
   };
 
-  const assignmentId = formatAssignmentId(ticketId, 1);
-  const assignment: AssignmentRecord = {
-    assignment_id: assignmentId,
-    ticket_id: ticketId,
-    sequence_number: 1,
-    assigned_team: routing.assignedTeam,
-    assigned_actor_id: null,
-    assigned_actor_role: routing.categoryRecord.default_actor_role,
-    routing_rule_id: routing.routingRuleId,
-    assignment_reason: 'Automated initial intake routing based on category rules',
-    previous_assignment_id: null,
-    previous_assigned_team: null,
-    requires_human_review: false,
-    is_active: true,
-    assigned_at: nowIso,
-    unassigned_at: null,
-  };
+  const assignment: AssignmentRecord = routing.assignment;
 
   const sla = buildReproducibleSlaRecord({
     ticketId,
-    categoryName: routing.categoryRecord.category_name,
+    category: detectedCategory,
     startTimestampIso: nowIso,
-    evaluationTimestampIso: nowIso,
+    evaluatedTimestampIso: nowIso,
+    isTicketEscalated: routing.requiresEscalation,
+    requiresEscalation: routing.requiresEscalation,
     lifecycleStatus: initialStatus,
   });
 
@@ -486,15 +494,18 @@ export function createClientSideFallbackTicket(
       ? 'Saved draft academic request'
       : 'Direct student intake submission',
     timestampIso: nowIso,
-    sequenceNumber: 1,
+    eventSequence: 1,
   });
 
   const notification: WorkspaceNotificationRecord = {
-    id: `NOTIF-${Date.now()}`,
+    notification_id: `NOTIF-${Date.now()}`,
     recipient_profile_id: activeProfile?.id || 'sys',
     ticket_id: ticketId,
+    event_type: 'ticket_created',
+    category: 'lifecycle',
     title: 'Academic Request Received',
-    message: `Your request "${input.subject}" has been submitted and assigned to ${routing.assignedTeam}.`,
+    summary: `Your request "${input.subject}" has been submitted and assigned to ${routing.assignment.assigned_team}.`,
+    policy_reference: null,
     is_read: false,
     created_at: nowIso,
   };
@@ -816,13 +827,256 @@ export async function queryPolicyAssistant(input: {
   recommendedEscalationTeam: string | null;
   recommendedRoutingRuleId: string | null;
 }> {
-  return await authorizedJsonFetch('/api/ai/policy-assistant', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'query',
-      ...input,
-    }),
+  try {
+    return await authorizedJsonFetch('/api/ai/policy-assistant', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'query',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn(
+      'Serverless policy assistant unavailable, activating resilient client-side deterministic retrieval:',
+      err
+    );
+    return createClientSidePolicyAssistantFallback(input);
+  }
+}
+
+function createClientSidePolicyAssistantFallback(input: {
+  query: string;
+  asOfDate?: string;
+  activeRolePreview?: ActorRole;
+}) {
+  const bootstrap = getClientSideFallbackBootstrap();
+  const asOfDate = input.asOfDate || new Date().toISOString().slice(0, 10);
+  const nowIso = formatIsoWithIstOffset(new Date());
+  const queryId = `QRY-LOCAL-${Date.now()}`;
+
+  const policies = bootstrap.knowledgeBase.policies;
+  const articles = bootstrap.knowledgeBase.articles;
+  const allArticles = generateDeterministicDataset({
+    seed: DETERMINISTIC_SEED,
+    mode: 'starter',
+  }).knowledgeArticles;
+
+  const retrieval = retrieveApplicablePolicyEvidence({
+    query: input.query,
+    policies,
+    articles: allArticles.length > articles.length ? allArticles : articles,
+    asOfDateIso: asOfDate,
   });
+
+  const detectedCategory = retrieval.detectedCategory;
+  const routingRule = detectedCategory
+    ? DOCUMENTED_ROUTING_RULES[detectedCategory]
+    : null;
+
+  const citedSources: {
+    sourceType: 'policy' | 'article';
+    id: string;
+    sourceId: string;
+    version: string;
+    title: string;
+    sourceDocumentTitle: string;
+    domainOrCategory: string;
+    effectiveDate: string;
+    expirationDate: string | null;
+    lifecycleState: string;
+    sectionRef?: string;
+    relevantSectionOrPassage: string;
+    citation: string;
+    summary: string;
+    content: string;
+    sourceUrl: string;
+    isSynthetic: boolean;
+    supersedesPolicyId?: string | null;
+    supersededByPolicyId?: string | null;
+  }[] = [
+    ...retrieval.applicablePolicies.map((p) => ({
+      sourceType: 'policy' as const,
+      id: p.policy_id,
+      sourceId: p.policy_id,
+      version: p.version,
+      title: p.title,
+      sourceDocumentTitle: p.title,
+      domainOrCategory: p.domain,
+      effectiveDate: p.effective_date,
+      expirationDate: p.expiration_date,
+      lifecycleState: p.lifecycle_state,
+      relevantSectionOrPassage: p.summary,
+      citation: `${p.policy_id} v${p.version} — ${p.title}`,
+      summary: p.summary,
+      content: p.content,
+      sourceUrl: `#policy-${p.policy_id}`,
+      isSynthetic: false,
+      supersedesPolicyId: p.supersedes_policy_id,
+      supersededByPolicyId: p.superseded_by_policy_id,
+    })),
+    ...retrieval.applicableArticles.map((a) => ({
+      sourceType: 'article' as const,
+      id: a.article_id,
+      sourceId: a.article_id,
+      version: a.version,
+      title: a.title,
+      sourceDocumentTitle: a.title,
+      domainOrCategory: a.category_id,
+      effectiveDate: a.effective_date,
+      expirationDate: a.expiration_date,
+      lifecycleState: a.lifecycle_state,
+      relevantSectionOrPassage: a.summary,
+      citation: `${a.article_id} v${a.version} — ${a.title}`,
+      summary: a.summary,
+      content: a.content,
+      sourceUrl: `#article-${a.article_id}`,
+      isSynthetic: false,
+    })),
+  ];
+
+  const expiredSourcesExcludedDetails: {
+    sourceType: 'policy' | 'article';
+    id: string;
+    sourceId: string;
+    version: string;
+    title: string;
+    sourceDocumentTitle: string;
+    domainOrCategory: string;
+    effectiveDate: string;
+    expirationDate: string | null;
+    lifecycleState: string;
+    sectionRef?: string;
+    relevantSectionOrPassage: string;
+    citation: string;
+    summary: string;
+    content: string;
+    sourceUrl: string;
+    isSynthetic: boolean;
+    supersedesPolicyId?: string | null;
+    supersededByPolicyId?: string | null;
+    exclusionReason?: string;
+  }[] = [
+    ...retrieval.expiredPoliciesExcluded.map((p) => ({
+      sourceType: 'policy' as const,
+      id: p.policy_id,
+      sourceId: p.policy_id,
+      version: p.version,
+      title: p.title,
+      sourceDocumentTitle: p.title,
+      domainOrCategory: p.domain,
+      effectiveDate: p.effective_date,
+      expirationDate: p.expiration_date,
+      lifecycleState: p.lifecycle_state,
+      relevantSectionOrPassage: p.summary,
+      citation: `${p.policy_id} v${p.version} — ${p.title}`,
+      summary: p.summary,
+      content: p.content,
+      sourceUrl: `#policy-${p.policy_id}`,
+      isSynthetic: false,
+      supersedesPolicyId: p.supersedes_policy_id,
+      supersededByPolicyId: p.superseded_by_policy_id,
+      exclusionReason: `Policy expired on ${p.expiration_date}; superseded or inactive as of ${asOfDate}.`,
+    })),
+    ...retrieval.expiredArticlesExcluded.map((a) => ({
+      sourceType: 'article' as const,
+      id: a.article_id,
+      sourceId: a.article_id,
+      version: a.version,
+      title: a.title,
+      sourceDocumentTitle: a.title,
+      domainOrCategory: a.category_id,
+      effectiveDate: a.effective_date,
+      expirationDate: a.expiration_date,
+      lifecycleState: a.lifecycle_state,
+      relevantSectionOrPassage: a.summary,
+      citation: `${a.article_id} v${a.version} — ${a.title}`,
+      summary: a.summary,
+      content: a.content,
+      sourceUrl: `#article-${a.article_id}`,
+      isSynthetic: false,
+      exclusionReason: `Article expired on ${a.expiration_date} and is excluded from active guidance.`,
+    })),
+  ];
+
+  let answer = '';
+  if (citedSources.length > 0) {
+    const topSource = citedSources[0];
+    answer = `Based on institutional policy documents (${citedSources.map((s) => `${s.sourceId} v${s.version}`).join(', ')}):\n\n${topSource.summary}\n\n${topSource.content.slice(0, 450)}...`;
+  } else if (retrieval.expiredPolicyRejected) {
+    answer = `The requested policy version is expired or superseded as of ${asOfDate}. Under institutional governance rules, expired policies cannot be applied to active student inquiries.`;
+  } else if (retrieval.unsupportedClaimRequested) {
+    answer = `This request asks for terms or guarantees not established in institutional policy (${(retrieval.unsupportedClaimDetails || []).join('; ')}).`;
+  } else {
+    answer = `No active policy documents directly cover this inquiry as of ${asOfDate}. Human escalation to the designated administrative department is recommended.`;
+  }
+
+  const escalationTriggered =
+    retrieval.escalationRecommended ||
+    Boolean(retrieval.clarificationNeeded) ||
+    Boolean(retrieval.unsupportedClaimRequested) ||
+    Boolean(retrieval.hasConflictingSources);
+
+  const escalationReason =
+    retrieval.escalationReason ||
+    (escalationTriggered ? 'Local retrieval flagged for administrative review' : null);
+
+  const retrievalLog: AIRetrievalLogRecord = {
+    query_id: queryId,
+    requester_profile_id: bootstrap.requester.app_profile_id || null,
+    actor_role: input.activeRolePreview || ActorRole.Learner,
+    user_query: input.query,
+    detected_category: detectedCategory,
+    retrieved_policy_ids: retrieval.applicablePolicies.map((p) => p.policy_id),
+    retrieved_policy_versions: retrieval.applicablePolicies.map((p) => p.version),
+    retrieved_article_ids: retrieval.applicableArticles.map((a) => a.article_id),
+    retrieved_article_versions: retrieval.applicableArticles.map((a) => a.version),
+    expired_sources_excluded: [
+      ...retrieval.expiredPoliciesExcluded.map((p) => `${p.policy_id} v${p.version}`),
+      ...retrieval.expiredArticlesExcluded.map((a) => `${a.article_id} v${a.version}`),
+    ],
+    generated_response: answer,
+    retrieval_confidence: retrieval.retrievalConfidence,
+    evidence_status: retrieval.evidenceStatus,
+    escalation_triggered: escalationTriggered,
+    escalation_reason: escalationReason,
+    escalated_ticket_id: null,
+    feedback_helpful: null,
+    created_at: nowIso,
+  };
+
+  bootstrap.aiRetrievalLogs.unshift(retrievalLog);
+
+  return {
+    ok: true,
+    answer,
+    explanation: `Deterministic institutional retrieval matched ${retrieval.applicablePolicies.length} policy(s) and ${retrieval.applicableArticles.length} article(s). Confidence: ${(retrieval.retrievalConfidence * 100).toFixed(0)}%.`,
+    confidence: retrieval.retrievalConfidence,
+    evidenceStatus: retrieval.evidenceStatus,
+    clarificationNeeded: Boolean(retrieval.clarificationNeeded),
+    clarificationQuestions: retrieval.clarificationQuestions || [],
+    hasConflictingSources: Boolean(retrieval.hasConflictingSources),
+    conflictingSources: retrieval.conflictingSources || [],
+    unsupportedClaimRequested: Boolean(retrieval.unsupportedClaimRequested),
+    unsupportedClaimDetails: retrieval.unsupportedClaimDetails || [],
+    expiredPolicyRejected: Boolean(retrieval.expiredPolicyRejected),
+    synthesisMode: 'deterministic_fallback' as const,
+    modelUsed: 'local-deterministic-rag-v1',
+    geminiApiStatus: 'fallback_after_error' as const,
+    geminiApiError: null,
+    databasePersistence: {
+      persistedToPostgres: false,
+      table: 'ai_retrieval_logs',
+      errorCode: 'CLIENT_FALLBACK',
+      errorMessage: 'Client-side fallback active',
+    },
+    retrievalLog,
+    citedSources,
+    expiredSourcesExcludedDetails,
+    supportedFacts: citedSources.map((s) => `${s.sourceId} v${s.version}: ${s.title}`),
+    missingOrUnestablishedFacts: retrieval.unsupportedClaimDetails || [],
+    recommendedEscalationTeam: routingRule?.escalation_assigned_team || null,
+    recommendedRoutingRuleId: routingRule?.rule_id || null,
+  };
 }
 
 export async function submitPolicyAssistantFeedback(input: {

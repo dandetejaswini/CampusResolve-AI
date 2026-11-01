@@ -5,6 +5,7 @@ import { InputField, CheckboxField } from '../../components/ui/InputField';
 import { Button } from '../../components/ui/Button';
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog';
 import { useAuth } from '../../context/AuthContext';
+import { QuickDemoAccounts } from '../../components/auth/QuickDemoAccounts';
 import {
   SignInFormInput,
   validateSignInForm,
@@ -134,8 +135,8 @@ export const SignInPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 flex justify-center">
-      <div className="w-full max-w-md rounded-md surface-elevated p-8 md:p-10 flex flex-col gap-6">
+    <div className="max-w-7xl mx-auto px-6 py-12 md:py-20 flex justify-center">
+      <div className="w-full max-w-2xl rounded-md surface-elevated p-6 md:p-10 flex flex-col gap-6">
         <div className="flex flex-col gap-2 border-b border-[#292A25]/10 pb-5">
           <div className="flex items-center gap-2 text-xs font-medium text-[#777B63]">
             <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
@@ -145,9 +146,20 @@ export const SignInPage: React.FC = () => {
             Sign in to CampusResolve AI
           </h1>
           <p className="text-xs text-[#292A25]/70 leading-relaxed">
-            Sign in with your verified institutional email and password or
-            continue with your Google account.
+            Select a quick demo account to immediately experience role-governed
+            workflows, or sign in with your institutional credentials.
           </p>
+        </div>
+
+        {/* Quick Demo Accounts Component */}
+        <QuickDemoAccounts />
+
+        <div className="relative flex items-center justify-center">
+          <div className="border-t border-[#292A25]/12 w-full" />
+          <span className="bg-[#F8F7F3] px-3 text-xs text-[#292A25]/55 whitespace-nowrap">
+            or sign in with credentials
+          </span>
+          <div className="border-t border-[#292A25]/12 w-full" />
         </div>
 
         {locationState?.reason === 'protected_workspace' && !authFeedback && (
