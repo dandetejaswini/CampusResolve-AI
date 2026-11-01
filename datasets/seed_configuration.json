@@ -1,0 +1,40 @@
+{
+  "seed": 20261022,
+  "prngAlgorithm": "Mulberry32 (32-bit deterministic integer state)",
+  "anchorTimestampIso": "2026-09-01T08:00:00.000Z",
+  "masterFirstGenerationOrder": [
+    "1. Requester",
+    "2. Role",
+    "3. Term",
+    "4. PolicyDocument",
+    "5. KnowledgeArticle",
+    "6. Category",
+    "7. Ticket",
+    "8. Message",
+    "9. Assignment",
+    "10. SLA",
+    "11. ResolutionFeedback"
+  ],
+  "fullScaleParameters": {
+    "ticketCount": 5000,
+    "knowledgeArticleCount": 200,
+    "messagesPerTicket": 4,
+    "totalMessages": 20000,
+    "requesterCount": 500,
+    "policyDocumentCount": 12,
+    "categoryCount": 4,
+    "roleCount": 5,
+    "termCount": 4
+  },
+  "identifierPatterns": {
+    "Ticket": "^TKT-2026-[0-9]{6}$",
+    "Message": "^MSG-TKT-2026-[0-9]{6}-[0-9]{3}$",
+    "KnowledgeArticle": "^KB-[0-9]{6}$",
+    "PolicyDocument": "^POL-(FINAID|REG|IT|ACCESS)-2026-[0-9]{3}$",
+    "SLA": "^SLA-TKT-2026-[0-9]{6}$",
+    "Assignment": "^ASG-TKT-2026-[0-9]{6}-[0-9]{2}$",
+    "ResolutionFeedback": "^FDB-TKT-2026-[0-9]{6}$",
+    "Requester": "^REQ-2026-[0-9]{6}$",
+    "GroundTruthAnomaly": "^ANM-2026-[0-9]{6}$"
+  }
+}

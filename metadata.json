@@ -1,0 +1,6 @@
+{
+  "name": "CampusResolve AI",
+  "description": "An intelligent platform for routing learner and instructor requests, retrieving policy-grounded answers, and tracking resolution and escalation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

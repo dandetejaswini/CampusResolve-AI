@@ -1,0 +1,54 @@
+[
+  {
+    "term_id": "TERM-2025-FALL",
+    "term_code": "FA2025",
+    "term_name": "Fall Semester 2025",
+    "academic_year": 2025,
+    "start_date": "2025-08-25",
+    "add_drop_deadline": "2025-09-08",
+    "withdrawal_deadline": "2025-10-20",
+    "end_date": "2025-12-15",
+    "aid_disbursement_date": "2025-08-15",
+    "lifecycle_state": "archived",
+    "created_at": "2025-05-01T08:00:00.000Z"
+  },
+  {
+    "term_id": "TERM-2026-SPRING",
+    "term_code": "SP2026",
+    "term_name": "Spring Semester 2026",
+    "academic_year": 2026,
+    "start_date": "2026-01-19",
+    "add_drop_deadline": "2026-02-02",
+    "withdrawal_deadline": "2026-03-16",
+    "end_date": "2026-05-15",
+    "aid_disbursement_date": "2026-01-09",
+    "lifecycle_state": "archived",
+    "created_at": "2025-10-01T08:00:00.000Z"
+  },
+  {
+    "term_id": "TERM-2026-SUMMER",
+    "term_code": "SU2026",
+    "term_name": "Summer Session 2026",
+    "academic_year": 2026,
+    "start_date": "2026-06-01",
+    "add_drop_deadline": "2026-06-08",
+    "withdrawal_deadline": "2026-07-06",
+    "end_date": "2026-08-07",
+    "aid_disbursement_date": "2026-05-22",
+    "lifecycle_state": "archived",
+    "created_at": "2026-02-01T08:00:00.000Z"
+  },
+  {
+    "term_id": "TERM-2026-FALL",
+    "term_code": "FA2026",
+    "term_name": "Fall Semester 2026",
+    "academic_year": 2026,
+    "start_date": "2026-08-24",
+    "add_drop_deadline": "2026-09-07",
+    "withdrawal_deadline": "2026-10-19",
+    "end_date": "2026-12-18",
+    "aid_disbursement_date": "2026-08-14",
+    "lifecycle_state": "active",
+    "created_at": "2026-04-01T08:00:00.000Z"
+  }
+]

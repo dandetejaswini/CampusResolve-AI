@@ -1,0 +1,91 @@
+[
+  {
+    "role_id": "ROLE-LEARNER",
+    "role_code": "learner",
+    "role_name": "Learner",
+    "institutional_scope": "Undergraduate & Graduate Student Cohort",
+    "description": "Submits academic and support requests, queries policy-grounded answers, and provides resolution feedback.",
+    "allowed_actions": [
+      "submit_academic_petition"
+    ],
+    "can_be_assigned_tickets": false,
+    "can_publish_policies": false,
+    "can_approve_escalations": false,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "role_id": "ROLE-INSTRUCTOR",
+    "role_code": "instructor",
+    "role_name": "Instructor",
+    "institutional_scope": "Faculty & Course Instructional Staff",
+    "description": "Submits course-related requests, attests to student petitions, and proposes policy revisions.",
+    "allowed_actions": [
+      "submit_faculty_course_request",
+      "propose_policy_revision"
+    ],
+    "can_be_assigned_tickets": false,
+    "can_publish_policies": false,
+    "can_approve_escalations": false,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "role_id": "ROLE-SUPPORT_STAFF",
+    "role_code": "support_staff",
+    "role_name": "Support Staff",
+    "institutional_scope": "Operational Intake & Departmental Triage Units",
+    "description": "Triages incoming tickets, verifies applicable policy versions, responds to routine inquiries, and escalates exceptions.",
+    "allowed_actions": [
+      "log_intake_support_ticket",
+      "triage_support_queue",
+      "propose_policy_revision"
+    ],
+    "can_be_assigned_tickets": true,
+    "can_publish_policies": false,
+    "can_approve_escalations": false,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "role_id": "ROLE-ACADEMIC_ADMIN",
+    "role_code": "academic_administrator",
+    "role_name": "Academic Administrator",
+    "institutional_scope": "Academic Governance & Escalation Review Boards",
+    "description": "Adjudicates escalated requests, approves policy exceptions, and publishes authoritative policy documents.",
+    "allowed_actions": [
+      "initiate_administrative_review",
+      "approve_policy_escalation",
+      "publish_knowledge_article",
+      "configure_department_routing"
+    ],
+    "can_be_assigned_tickets": true,
+    "can_publish_policies": true,
+    "can_approve_escalations": true,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "role_id": "ROLE-PLATFORM_ADMIN",
+    "role_code": "platform_administrator",
+    "role_name": "Platform Administrator",
+    "institutional_scope": "Enterprise Workflow, Routing & SLA Governance",
+    "description": "Configures routing rules, SLA schedules, and platform security governance.",
+    "allowed_actions": [
+      "initiate_administrative_review",
+      "publish_knowledge_article",
+      "configure_department_routing",
+      "configure_platform_governance"
+    ],
+    "can_be_assigned_tickets": true,
+    "can_publish_policies": true,
+    "can_approve_escalations": true,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  }
+]

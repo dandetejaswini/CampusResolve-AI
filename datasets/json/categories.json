@@ -1,0 +1,84 @@
+[
+  {
+    "category_id": "CAT-FINAID",
+    "category_name": "Financial Aid",
+    "domain_code": "FINAID",
+    "default_assigned_team": "Office of Financial Aid & Scholarships",
+    "escalation_team": "Financial Aid Appeals & Compliance Review Committee",
+    "routing_rule_id": "RULE-FINAID-001",
+    "description": "Routes Financial Aid disbursement, SAP appeal, scholarship eligibility, and emergency aid inquiries to the Office of Financial Aid & Scholarships; escalates appeals and policy exceptions to the Financial Aid Appeals & Compliance Review Committee.",
+    "keywords": [
+      "fafsa",
+      "sap",
+      "appeal",
+      "disbursement",
+      "scholarship",
+      "grant"
+    ],
+    "is_active": true,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "category_id": "CAT-REG",
+    "category_name": "Registration",
+    "domain_code": "REG",
+    "default_assigned_team": "Office of the University Registrar",
+    "escalation_team": "Academic Senate Registration Review Board",
+    "routing_rule_id": "RULE-REG-001",
+    "description": "Routes course enrollment, add/drop deadlines, late withdrawal petitions, credit overload, and degree audit requests to the Office of the University Registrar; escalates retroactive petitions to the Academic Senate Registration Review Board.",
+    "keywords": [
+      "add/drop",
+      "withdrawal",
+      "overload",
+      "prerequisite",
+      "enrollment"
+    ],
+    "is_active": true,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "category_id": "CAT-IT",
+    "category_name": "IT",
+    "domain_code": "IT",
+    "default_assigned_team": "Campus IT Operations & Identity Desk",
+    "escalation_team": "Information Security & Infrastructure Escalation Unit",
+    "routing_rule_id": "RULE-IT-001",
+    "description": "Routes SSO authentication, MFA reset, LMS access, institutional email provisioning, and lab software licensing requests to the Campus IT Operations & Identity Desk; escalates security or multi-system outages to Information Security & Infrastructure Escalation Unit.",
+    "keywords": [
+      "mfa",
+      "sso",
+      "lms",
+      "password",
+      "authenticator",
+      "license"
+    ],
+    "is_active": true,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  },
+  {
+    "category_id": "CAT-ACCESS",
+    "category_name": "Accessibility",
+    "domain_code": "ACCESS",
+    "default_assigned_team": "Disability & Accessibility Services Office",
+    "escalation_team": "ADA / Section 504 Compliance Review Panel",
+    "routing_rule_id": "RULE-ACCESS-001",
+    "description": "Routes exam accommodation letters, assistive technology requests, captioning, and physical classroom access adjustments to the Disability & Accessibility Services Office; escalates accommodation disputes or urgent compliance barriers to the ADA / Section 504 Compliance Review Panel.",
+    "keywords": [
+      "accommodation",
+      "testing",
+      "captioning",
+      "assistive",
+      "section 504"
+    ],
+    "is_active": true,
+    "effective_from": "2025-08-01",
+    "effective_to": null,
+    "created_at": "2026-09-01T08:00:00.000Z"
+  }
+]

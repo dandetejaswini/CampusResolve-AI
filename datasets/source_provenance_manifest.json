@@ -1,0 +1,131 @@
+{
+  "manifestVersion": "2026.10-phase4",
+  "seed": 20261022,
+  "generatedAtAnchor": "2026-09-01T08:00:00.000Z",
+  "lawfulSyntheticProvenanceDeclaration": "All records in this benchmark dataset are 100% synthetic, deterministically generated using seed 20261022 under CC0-1.0 for the YottaFlex AI Code Challenge. No real student PII, real university administrative records, or copyrighted institutional policy texts are used. Synthetic email addresses use the RFC 2606 reserved .invalid TLD (@synthetic.campusresolve.invalid) and synthetic URIs use the urn:campusresolve:synthetic-* namespace.",
+  "classifications": {
+    "CONFIRMED_CHALLENGE_REQUIREMENT": [
+      "11 Core Entities: Requester, Role, Term, PolicyDocument, KnowledgeArticle, Category, Ticket, Message, Assignment, SLA, ResolutionFeedback",
+      "4 Official Ticket Categories: Financial Aid, Registration, IT, Accessibility",
+      "Exact Identifier Formats: TKT-2026-000001, MSG-TKT-2026-000001-001 (3-digit zero-padded), KB-000001, POL-<domain>-2026-001, SLA-TKT-2026-000001",
+      "Baseline Volumes: 5,000 tickets, 200 knowledge articles, 20,000 messages",
+      "Fixed Deterministic Seed: 20261022",
+      "5 Required Anomaly Scenarios: expired_policy_citation, unauthorized_team_routing, unsupported_factual_claim, sla_clock_ignores_business_hours, required_escalation_not_triggered",
+      "Strict Ground-Truth Separation: ground_truth.csv and ground_truth.json isolated from operational features"
+    ],
+    "PROPOSED_CONFIGURABLE_RULE": {
+      "description": "Institutional routing rules, SLA business-hour schedules, and target business minutes are explicitly labeled as configurable operational parameters rather than invented official mandates.",
+      "businessSchedule": {
+        "schedule_code": "SCHED-CONFIG-MON-FRI-0800-1700-UTC",
+        "classification": "PROPOSED_CONFIGURABLE_RULE",
+        "description": "Configurable institutional business schedule (Monday–Friday, 08:00–17:00 UTC, 540 business minutes per day; excludes weekends and configured holiday dates). Explicitly marked as a proposed configurable schedule rather than a hardcoded institutional regulation.",
+        "workday_start_hour_utc": 8,
+        "workday_end_hour_utc": 17,
+        "working_days_of_week": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "timezone_name": "UTC",
+        "holiday_dates_utc": []
+      },
+      "routingRules": {
+        "Financial Aid": {
+          "rule_id": "RULE-FINAID-001",
+          "category_id": "CAT-FINAID",
+          "category_name": "Financial Aid",
+          "domain_code": "FINAID",
+          "primary_assigned_team": "Office of Financial Aid & Scholarships",
+          "escalation_assigned_team": "Financial Aid Appeals & Compliance Review Committee",
+          "default_actor_role": "support_staff",
+          "escalation_actor_role": "academic_administrator",
+          "rule_description": "Routes Financial Aid disbursement, SAP appeal, scholarship eligibility, and emergency aid inquiries to the Office of Financial Aid & Scholarships; escalates appeals and policy exceptions to the Financial Aid Appeals & Compliance Review Committee."
+        },
+        "Registration": {
+          "rule_id": "RULE-REG-001",
+          "category_id": "CAT-REG",
+          "category_name": "Registration",
+          "domain_code": "REG",
+          "primary_assigned_team": "Office of the University Registrar",
+          "escalation_assigned_team": "Academic Senate Registration Review Board",
+          "default_actor_role": "support_staff",
+          "escalation_actor_role": "academic_administrator",
+          "rule_description": "Routes course enrollment, add/drop deadlines, late withdrawal petitions, credit overload, and degree audit requests to the Office of the University Registrar; escalates retroactive petitions to the Academic Senate Registration Review Board."
+        },
+        "IT": {
+          "rule_id": "RULE-IT-001",
+          "category_id": "CAT-IT",
+          "category_name": "IT",
+          "domain_code": "IT",
+          "primary_assigned_team": "Campus IT Operations & Identity Desk",
+          "escalation_assigned_team": "Information Security & Infrastructure Escalation Unit",
+          "default_actor_role": "support_staff",
+          "escalation_actor_role": "platform_administrator",
+          "rule_description": "Routes SSO authentication, MFA reset, LMS access, institutional email provisioning, and lab software licensing requests to the Campus IT Operations & Identity Desk; escalates security or multi-system outages to Information Security & Infrastructure Escalation Unit."
+        },
+        "Accessibility": {
+          "rule_id": "RULE-ACCESS-001",
+          "category_id": "CAT-ACCESS",
+          "category_name": "Accessibility",
+          "domain_code": "ACCESS",
+          "primary_assigned_team": "Disability & Accessibility Services Office",
+          "escalation_assigned_team": "ADA / Section 504 Compliance Review Panel",
+          "default_actor_role": "support_staff",
+          "escalation_actor_role": "academic_administrator",
+          "rule_description": "Routes exam accommodation letters, assistive technology requests, captioning, and physical classroom access adjustments to the Disability & Accessibility Services Office; escalates accommodation disputes or urgent compliance barriers to the ADA / Section 504 Compliance Review Panel."
+        }
+      },
+      "slaRules": {
+        "Financial Aid": {
+          "sla_rule_id": "SLA-RULE-FINAID-CFG-01",
+          "category_name": "Financial Aid",
+          "classification": "PROPOSED_CONFIGURABLE_RULE",
+          "target_business_minutes": 1080,
+          "approaching_threshold_ratio": 0.75,
+          "schedule_code": "SCHED-CONFIG-MON-FRI-0800-1700-UTC",
+          "rule_note": "Proposed configurable target: 1,080 business minutes (2 business days under 08:00–17:00 UTC Mon–Fri schedule; approaching threshold at 75% / 810 business minutes)."
+        },
+        "Registration": {
+          "sla_rule_id": "SLA-RULE-REG-CFG-01",
+          "category_name": "Registration",
+          "classification": "PROPOSED_CONFIGURABLE_RULE",
+          "target_business_minutes": 540,
+          "approaching_threshold_ratio": 0.75,
+          "schedule_code": "SCHED-CONFIG-MON-FRI-0800-1700-UTC",
+          "rule_note": "Proposed configurable target: 540 business minutes (1 business day under 08:00–17:00 UTC Mon–Fri schedule; approaching threshold at 75% / 405 business minutes)."
+        },
+        "IT": {
+          "sla_rule_id": "SLA-RULE-IT-CFG-01",
+          "category_name": "IT",
+          "classification": "PROPOSED_CONFIGURABLE_RULE",
+          "target_business_minutes": 240,
+          "approaching_threshold_ratio": 0.75,
+          "schedule_code": "SCHED-CONFIG-MON-FRI-0800-1700-UTC",
+          "rule_note": "Proposed configurable target: 240 business minutes (4 business hours under 08:00–17:00 UTC Mon–Fri schedule; approaching threshold at 75% / 180 business minutes)."
+        },
+        "Accessibility": {
+          "sla_rule_id": "SLA-RULE-ACCESS-CFG-01",
+          "category_name": "Accessibility",
+          "classification": "PROPOSED_CONFIGURABLE_RULE",
+          "target_business_minutes": 540,
+          "approaching_threshold_ratio": 0.75,
+          "schedule_code": "SCHED-CONFIG-MON-FRI-0800-1700-UTC",
+          "rule_note": "Proposed configurable target: 540 business minutes (1 business day under 08:00–17:00 UTC Mon–Fri schedule; approaching threshold at 75% / 405 business minutes)."
+        }
+      }
+    },
+    "SYNTHETIC_EVAL_SCENARIO": {
+      "totalTickets": 5000,
+      "totalAnomalies": 1000,
+      "anomalyBreakdown": {
+        "expired_policy_citation": 200,
+        "unauthorized_team_routing": 200,
+        "unsupported_factual_claim": 200,
+        "sla_clock_ignores_business_hours": 200,
+        "required_escalation_not_triggered": 200
+      }
+    }
+  }
+}
