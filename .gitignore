@@ -12,3 +12,4 @@ firebase-applet-config.json
 *.pem
 *.key
 .aistudio/
+package-lock.json
