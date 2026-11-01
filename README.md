@@ -79,9 +79,9 @@ Open http://localhost:3000.
 - Restricted access to internal records and evaluation data.
 
 ## Documentation
-- `PHASE2_SETUP_AND_ARCHITECTURE.md`
-- `PHASE3_DATA_DICTIONARY_AND_ARCHITECTURE.md`
-- `datasets/`
+- [Setup and Architecture](PHASE2_SETUP_AND_ARCHITECTURE.md)
+- [Data Dictionary and Architecture](PHASE3_DATA_DICTIONARY_AND_ARCHITECTURE.md)
+- [Dataset and Evaluation Files](datasets/)
 
 ## License
 No license has been specified yet.
