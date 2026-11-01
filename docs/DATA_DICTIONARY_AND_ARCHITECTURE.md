@@ -1,14 +1,12 @@
 # CampusResolve AI — Data Dictionary & Synthetic Data Architecture
 
 ## 1. Dataset Configuration
+- **Generator Seed**: `20261022`
+- **Anchor Timestamp**: `2026-09-01T13:30:00+05:30` (ISO 8601 with explicit IST offset)
+- **Generation Command**: `npm run generate:dataset`
+- **Schema Reference**: [Official Data Dictionary (All 11 Entities)](DATA_DICTIONARY.md)
 
-- **Generator Seed:** `20261022`
-- **Anchor Timestamp:** `2026-09-01T13:30:00+05:30` (ISO 8601 with explicit IST offset)
-- **Generation Command:** `npm run generate:dataset`
-- **Comprehensive Reference:** See the standalone [Official Data Dictionary (All 11 Entities)](DATA_DICTIONARY.md) for field-level constraints, validation regex, and cardinalities.
-
-### Dataset Summary
-
+### Dataset Record Counts
 | Entity | Records |
 |---|---:|
 | Requesters | 500 |
@@ -23,168 +21,90 @@
 | SLAs | 5,000 |
 | Resolution Feedback | 2,667 |
 
-All records are synthetically generated for demonstration and evaluation.
+- **Synthetic Scope**: All records are synthetically generated for benchmark evaluation.
 
 ## 2. Entity Relationships
-
-- **Role → Requester:** One role can belong to multiple requesters.
-- **Term → Requester/Ticket:** Each requester and ticket is associated with an academic term.
-- **Requester → Ticket:** A requester can submit multiple tickets.
-- **Category → Policy/Article/Ticket:** Each record belongs to a category.
-- **Policy → Knowledge Article:** Articles reference their governing policies.
-- **Ticket → Message:** A ticket can contain multiple messages.
-- **Ticket → Assignment:** A ticket can have multiple assignment records.
-- **Ticket → SLA:** Each ticket has one SLA record.
-- **Ticket → Resolution Feedback:** Resolved tickets can have one feedback record.
+- **Role → Requester**: One institutional role maps to multiple requesters.
+- **Term → Requester/Ticket**: Each requester and ticket references an active academic term.
+- **Requester → Ticket**: A requester submits and tracks multiple support tickets.
+- **Category → Policy/Article/Ticket**: Categorizes records into Financial Aid, Registration, IT, or Accessibility.
+- **Policy → Knowledge Article**: Knowledge base articles cite authoritative governing policies.
+- **Ticket → Message**: A ticket contains sequential conversation messages.
+- **Ticket → Assignment**: A ticket tracks active and historical team assignments.
+- **Ticket → SLA**: Each ticket binds to exactly one business-hour SLA tracking record.
+- **Ticket → Resolution Feedback**: Resolved tickets capture student satisfaction ratings.
 
 ## 3. Identifier Formats
+| Entity | Format Pattern | Example |
+|---|---|---|
+| Ticket | `TKT-YYYY-NNNNNN` | `TKT-2026-000001` |
+| Message | `MSG-TKT-YYYY-NNNNNN-NNN` | `MSG-TKT-2026-000001-001` |
+| Knowledge Article | `KB-NNNNNN` | `KB-000001` |
+| Policy Document | `POL-{DOMAIN}-YYYY-NNN` | `POL-FINAID-2026-001` |
+| Assignment | `ASG-TKT-YYYY-NNNNNN-NN` | `ASG-TKT-2026-000001-01` |
+| SLA | `SLA-TKT-YYYY-NNNNNN` | `SLA-TKT-2026-000001` |
+| Requester | `REQ-YYYY-NNNNNN` | `REQ-2026-000001` |
+| Feedback | `FDB-TKT-YYYY-NNNNNN` | `FDB-TKT-2026-000001` |
 
-| Entity | Example |
-|---|---|
-| Ticket | `TKT-2026-000001` |
-| Message | `MSG-TKT-2026-000001-001` |
-| Knowledge Article | `KB-000001` |
-| Policy Document | `POL-FINAID-2026-001` |
-| Assignment | `ASG-TKT-2026-000001-01` |
-| SLA | `SLA-TKT-2026-000001` |
-| Requester | `REQ-2026-000001` |
-| Feedback | `FDB-TKT-2026-000001` |
-
-Identifiers are generated deterministically and validated for uniqueness and format.
+- **Integrity**: Identifiers are generated deterministically and strictly checked for primary key uniqueness.
 
 ## 4. Core Data Entities
+- **Requester**:
+  - Captures student/faculty identity, department, cohort, and verification status.
+- **Role**:
+  - Defines institutional roles, permission boundaries, and authorized workflows.
+- **Term**:
+  - Models academic term dates, add/drop windows, and deadline milestones.
+- **Policy Document**:
+  - Stores authoritative policy text, version history, effective dates, and expiration markers.
+- **Knowledge Article**:
+  - Searchable FAQs and guidance articles mapped to underlying policy citations.
+- **Category**:
+  - Four institutional domains: Financial Aid, Registration, IT Support, Accessibility.
+- **Ticket**:
+  - Primary transaction entity storing issue details, urgency, state, and policy links.
+- **Message**:
+  - Immutable message threads containing public replies, internal notes, and citations.
+- **Assignment**:
+  - Historical and current departmental team assignments with reassignment reasoning.
+- **SLA**:
+  - Business-hour countdown tracking, target deadlines, elapsed time, and breach flags.
+- **Resolution Feedback**:
+  - Post-resolution student satisfaction ratings (helpfulness, policy clarity, satisfaction).
 
-The platform uses 11 primary entities:
+## 5. Master-First Generation Pipeline
+- **Step 1**: Generate master roles and academic term schedules.
+- **Step 2**: Generate student and faculty requester profiles.
+- **Step 3**: Generate 24 policy documents and 200 knowledge base articles.
+- **Step 4**: Generate institutional categories and 5,000 operational tickets.
+- **Step 5**: Generate message threads and departmental assignment histories.
+- **Step 6**: Compute business-hour SLA metrics and target deadlines.
+- **Step 7**: Append resolution feedback records for resolved tickets.
 
-### Requester
-Stores requester identity, role, department, academic term, and account status.
+### Data Integrity Validations
+- Primary key uniqueness across all 11 tables.
+- Foreign key referential integrity with zero dangling records.
+- Chronological ordering of timestamps and term boundary dates.
+- State machine transition legality across ticket lifecycles.
+- Message sequence number consistency within each ticket thread.
 
-### Role
-Defines institutional roles, permissions, and authorized actions.
-
-### Term
-Stores academic term details, dates, deadlines, and lifecycle status.
-
-### Policy Document
-Stores policy content, category, version, effective dates, and expiration details.
-
-### Knowledge Article
-Contains searchable guidance linked to relevant policy documents.
-
-### Category
-Defines the four request categories:
-- Financial Aid
-- Registration
-- IT
-- Accessibility
-
-### Ticket
-Stores request details, requester, category, priority, lifecycle status, assignment, and policy references.
-
-### Message
-Maintains ticket conversations, sender details, message types, and policy citations.
-
-### Assignment
-Records routing decisions, assigned teams, assignment history, and reassignment details.
-
-### SLA
-Tracks response deadlines, resolution targets, elapsed time, and escalation status.
-
-### Resolution Feedback
-Stores requester ratings, helpfulness, policy clarity, and resolution feedback.
-
-## 5. Data Generation and Validation
-
-The dataset follows a master-first generation process:
-
-1. Generate roles and academic terms.
-2. Generate requesters.
-3. Generate policies and knowledge articles.
-4. Generate categories and tickets.
-5. Generate messages and assignments.
-6. Generate SLA records.
-7. Generate resolution feedback.
-
-Validation covers:
-
-- Primary key uniqueness.
-- Foreign key integrity.
-- Required fields and allowed values.
-- Date and effective-version consistency.
-- Ticket lifecycle consistency.
-- Message sequence integrity.
-- Assignment and SLA consistency.
-- Duplicate record detection.
-
-## 6. Anomaly Scenarios
-
-Five deterministic anomaly scenarios are included for evaluation.
-
-| Scenario | Description | Expected Handling |
+## 6. Evaluation Anomaly Scenarios
+| Scenario | Injected Defect | Expected Remediation |
 |---|---|---|
-| Expired Policy Citation | Ticket references an expired policy. | Use the current applicable policy. |
-| Unauthorized Routing | Ticket is assigned to an incorrect team. | Route to the authorized team. |
-| Unsupported Claim | Response contains an unsupported policy statement. | Restrict answers to verified sources. |
-| Incorrect SLA Calculation | SLA ignores configured business hours. | Recalculate using the configured schedule. |
-| Missed Escalation | Required escalation is not triggered. | Escalate and assign for human review. |
+| 1. Expired Policy Citation | References an expired policy (v1.0) | Remediate citation to current active policy (v2.0) |
+| 2. Unauthorized Routing | Routed to unauthorized departmental team | Reassign ticket to correct authorized unit |
+| 3. Unsupported Claim | AI response cites facts without policy evidence | Block output and require verified citations |
+| 4. Incorrect SLA Calculation | Due date ignores weekends and business hours | Recompute target date using institutional calendar |
+| 5. Missed Escalation | High-urgency repeated breach unescalated | Trigger mandatory escalation to Academic Administrator |
 
-Each scenario contains 200 synthetic cases.
+- **Sample Size**: 200 controlled synthetic cases per scenario (1,000 total anomaly cases).
+- **Ground-Truth Isolation**: Stored in `datasets/ground_truth.json` separate from operational inputs.
 
-Ground-truth labels are stored separately from operational records to prevent evaluation leakage.
-
-## 7. Synthetic Data Provenance
-
-- All benchmark records are synthetic.
-- Policy and knowledge content is created for demonstration.
-- Synthetic policy records are explicitly identified as non-regulatory.
-- No confidential institutional records are required.
-- Dataset generation uses a fixed seed for reproducibility.
-
-## 8. Export Files
-
-### CSV
-`datasets/csv/`
-
-Contains structured exports for all 11 entities and evaluation reports.
-
-### JSON
-`datasets/json/`
-
-Contains entity-level JSON records and the starter dataset.
-
-### SQL
-`datasets/sql/`
-
-Contains the synthetic benchmark SQL export.
-
-### Ground Truth
-- `datasets/ground_truth.csv`
-- `datasets/ground_truth.json`
-
-### Evaluation and Validation
-- `datasets/validation_report.json`
-- `datasets/evaluation_report.json`
-- `datasets/evaluation_metrics_report.json`
-- `datasets/anomaly_detection_results.json`
-- `datasets/reproducibility_report.json`
-
-### Configuration and Provenance
-- `datasets/seed_configuration.json`
-- `datasets/source_provenance_manifest.json`
-- `datasets/seed_summary_and_checksums.json`
-
-## 9. Reproducibility
-
-Run the dataset generator:
-
-    npm run generate:dataset
-
-The fixed seed ensures consistent synthetic records across repeated runs. Generated checksums and validation reports support reproducibility verification.
-
-## 10. Evaluation Notes
-
-- Evaluation uses controlled synthetic benchmark data.
-- Ground-truth labels remain separate from operational inputs.
-- Metrics are calculated from predefined expected outcomes.
-- Synthetic benchmark results do not guarantee real-world performance.
-- Configurable routing and SLA assumptions should not be interpreted as official institutional policies.
+## 7. Synthetic Provenance & Reproducibility
+- **Seed Determinism**: Fixed seed `20261022` guarantees identical outputs across all environments.
+- **Execution Command**:
+  ```bash
+  npm run generate:dataset
+  ```
+- **Verification**: Generates exact SHA-256 entity hashes documented in `datasets/seed_summary_and_checksums.json`.
+- **Privacy Assurance**: 100% synthetic data with zero personally identifiable institutional data.
