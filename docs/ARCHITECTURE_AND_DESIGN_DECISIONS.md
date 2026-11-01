@@ -7,9 +7,15 @@
 ---
 
 ## 1. Problem Statement and Solution Overview
-Higher education institutions face substantial administrative friction handling tens of thousands of student support inquiries across Financial Aid, Registration, IT Support, and Accessibility. Legacy ticketing systems lack policy grounding, leading to inconsistent guidance, SLA breaches, and manual escalation bottlenecks.
-
-**CampusResolve AI** is an enterprise-grade AI-powered academic support and ticket resolution workspace that integrates deterministic policy grounding (RAG), automated business-hour SLA tracking, multi-role RBAC, and secure Supabase PostgreSQL persistence with Firebase and Supabase authentication.
+- **Institutional Problem**:
+  - Higher education institutions process high volumes of student inquiries across Financial Aid, Registration, IT, and Accessibility.
+  - Legacy ticketing systems lack policy grounding, leading to inconsistent guidance.
+  - Manual triage causes SLA breaches, lack of auditability, and staff burnout.
+- **CampusResolve AI Solution**:
+  - Enterprise-grade academic support workspace with policy-grounded AI (RAG).
+  - Business-hour SLA tracking with calendar awareness.
+  - Five-perspective role-based access control (RBAC).
+  - Robust Supabase PostgreSQL persistence with dual Firebase/Supabase authentication.
 
 ---
 
@@ -27,61 +33,71 @@ graph TD
 ---
 
 ## 3. Frontend Architecture
-- Built with React 19, TypeScript, Tailwind CSS, and React Router.
-- Structured into modular domain components, custom hooks, and context providers (`AuthContext`, `WorkspaceContext`).
-- Strict separation between public marketing pages (Home, About, Features, Contact) and authenticated workspace sections (Dashboard, MyRequests, CreateRequest, AIAssistant, KnowledgeBase, Messages, Notifications, Profile, Settings).
-- Includes an interactive **Role Perspective Switcher** allowing instant switching between Learner, Instructor, Support Staff, Academic Administrator, and Platform Administrator perspectives without re-authenticating.
+- **Framework & Styling**: Built with React 19, TypeScript, Tailwind CSS, and React Router.
+- **State Management**: Modular context providers (`AuthContext`, `WorkspaceContext`) and domain hooks.
+- **View Separation**: Clear demarcation between public marketing pages and authenticated workspace sections.
+- **Interactive Role Switcher**: Top navigation selector enables instant preview of all five institutional roles without re-authenticating.
 
 ---
 
 ## 4. Backend and API Architecture
-- Full-stack Express server (`server.ts`) supporting local development middleware and Vercel serverless functions (`/api/*`).
-- API Endpoints:
-  - `POST /api/auth/firebase-claim`: Secure server-side Firebase token verification and Supabase profile provisioning.
-  - `POST /api/auth/welcome-email`: Authenticated welcome email dispatch via Google Apps Script.
-  - `GET /api/ops/workspace`: Operational workspace data bootstrap, ticket listing, metrics, and knowledge base pagination.
-  - `POST /api/ops/workspace`: Ticket creation, stage transitions, reassignments, AI policy escalation, and resolution feedback.
-  - `POST /api/ai/policy-assistant`: RAG policy retrieval, citation matching, and escalation ticket linking.
+- **Server Framework**: Dual-mode Express server (`server.ts`) for local development and standalone Vercel Serverless Functions (`/api/*`).
+- **Core API Endpoints**:
+  - `POST /api/auth/firebase-claim`: Server-side token verification and profile auto-provisioning.
+  - `POST /api/auth/welcome-email`: Welcome email dispatch via Google Apps Script.
+  - `GET /api/ops/workspace`: Workspace operational bootstrap, ticket queues, metrics, and KB pagination.
+  - `POST /api/ops/workspace`: Ticket creation, lifecycle state transitions, team reassignments, and feedback.
+  - `POST /api/ai/policy-assistant`: Policy RAG retrieval, citation verification, and escalation linking.
 
 ---
 
 ## 5. Supabase Database Architecture
-- Relational PostgreSQL database managed via Supabase.
-- Enforces Row Level Security (RLS) policies on all tables.
-- 18 schema tables: `roles`, `terms`, `requesters`, `categories`, `policy_documents`, `policy_version_history`, `knowledge_articles`, `policy_article_links`, `tickets`, `ticket_policy_links`, `ticket_article_links`, `ticket_lifecycle_events`, `messages`, `assignments`, `slas`, `resolution_feedbacks`, `ai_retrieval_logs`, `workspace_notifications`.
-- Transactional Atomic Reassignment via PostgreSQL RPC (`atomic_reassign_ticket_workflow`) guaranteeing single-transaction state updates and lifecycle event logging.
+- **Engine**: PostgreSQL managed through Supabase with Row Level Security (RLS) on all tables.
+- **Data Model**: 18 relational tables linking master entities, transactions, SLAs, and lifecycle events.
+- **Atomic Operations**: Database RPC `atomic_reassign_ticket_workflow` ensures ACID transactions across assignments, tickets, and audit trails.
 
 ---
 
 ## 6. Authentication and Authorization Boundaries
-- Supports dual authentication: Supabase Email/Password and Firebase Google Sign-In (`campusresolveai`).
-- Five Institutional Roles:
-  1. **Learner:** Submits requests, views own tickets, reads knowledge base, submits feedback.
-  2. **Instructor:** Reviews learner inquiries, cites policies, recommends routing.
-  3. **Support Staff:** Triages incoming queues, updates ticket status, assigns teams, posts internal notes.
-  4. **Academic Administrator:** Adjudicates policy escalations, reassigns escalated tickets, approves final resolutions.
-  5. **Platform Administrator:** Configures system governance, business schedules, SLA rules, and platform evaluation benchmarks.
+- **Supported Providers**: Supabase Email/Password and Firebase Google Sign-In (`campusresolveai`).
+- **Five Institutional Roles**:
+  - **Learner**: Submits petitions, tracks status, reads articles, submits ratings.
+  - **Instructor**: Reviews academic inquiries, attaches course attestations, recommends routing.
+  - **Support Staff**: Triages queues, validates policy citations, posts internal notes.
+  - **Academic Administrator**: Adjudicates escalations, approves policy exceptions, publishes governing policies.
+  - **Platform Administrator**: Configures business hours, SLA targets, and oversees benchmark evaluations.
 
 ---
 
 ## 7. Key Architectural Decisions and Trade-Offs
 
 ### Decision 1: Date-Aware Policy RAG & Supersession Tracking
-- **Rationale:** Traditional semantic search retrieves text solely based on cosine similarity, often retrieving older or superseded policy documents (e.g., retrieving an old 10-day appeal limit).
-- **Implementation:** CampusResolve AI's retrieval engine filters candidate policies against `effective_date` and `expiration_date` relative to the ticket's `submitted_at` timestamp. Historical versions are marked `superseded` or `expired` and explicitly excluded from active citations.
+- **Challenge**: Standard vector search ignores policy lifecycle dates, risking citations to expired rules.
+- **Implementation**:
+  - Filters candidate policies against `effective_date` and `expiration_date` relative to ticket submission time.
+  - Flags outdated versions as `superseded` or `expired`.
+  - Excludes inactive versions from generative citations.
 
 ### Decision 2: Standardized ISO 8601 Timestamps with Explicit Offset (+05:30)
-- **Rationale:** Human-readable or unqualified local date strings (e.g. `Tue 2026-09-01 7:37 PM IST`) break sorting, parsing, and SLA arithmetic across distributed servers and databases.
-- **Implementation:** All timestamp fields across all 11 entities strictly follow `YYYY-MM-DDTHH:mm:ss+05:30`. Date calculations normalize via epoch milliseconds while preserving the explicit institutional offset.
+- **Challenge**: Inconsistent or unqualified date strings break chronological ordering and SLA calculations.
+- **Implementation**:
+  - Standardized all 11 entities to strict `YYYY-MM-DDTHH:mm:ss+05:30` format.
+  - Normalizes calculations via epoch milliseconds while preserving the institutional timezone offset.
 
 ### Decision 3: Expanded 24-Document Policy Corpus
-- **Rationale:** 12 policy documents were insufficient to support 200 operational knowledge articles and multiple superseded versions across 4 categories.
-- **Implementation:** Expanded to 24 distinct policy documents (6 per domain: Financial Aid, Registration, IT, Accessibility) incorporating multiple version iterations (v1.0 expired, v2.0 active, v2.1 revised), conflicting directives, and unambiguous authoritative section citations.
+- **Challenge**: Initial 12 documents were insufficient for 200 articles and complex exception scenarios.
+- **Implementation**:
+  - Expanded corpus to 24 authoritative policies (6 per institutional domain).
+  - Modeled version progressions (v1.0 expired, v2.0 active, v2.1 revised) and explicit section citations.
 
 ### Decision 4: Deterministic RAG Fallback
-- **Rationale:** Cloud LLM APIs are subject to transient rate limits, network timeouts, or quota exhaustion during batch evaluation.
-- **Implementation:** When Gemini API is unavailable or disabled, the system seamlessly falls back to a deterministic, rule-grounded synthesizer that guarantees 100% test pass rates and zero hallucination.
+- **Challenge**: Cloud LLM API latency, network drops, or rate limits during automated benchmark evaluation.
+- **Implementation**:
+  - Added deterministic, rule-grounded synthesizer triggered on API timeout or missing API keys.
+  - Guarantees 100% test reproducibility and zero hallucination during automated testing.
 
 ### Decision 5: Atomic Reassignment RPC Migration
-- **Rationale:** Sequential multi-table writes in application code create race conditions where a ticket's status is updated but its assignment lineage fails or is duplicated.
-- **Implementation:** Implemented PostgreSQL function `atomic_reassign_ticket_workflow` that deactivates the prior assignment, inserts the new assignment, updates ticket team and status, appends an immutable lifecycle event, and sends a notification in a single atomic database transaction.
+- **Challenge**: Sequential multi-table HTTP writes risk race conditions and orphaned assignments.
+- **Implementation**:
+  - Deployed PostgreSQL function `atomic_reassign_ticket_workflow`.
+  - Executes assignment retirement, new assignment insertion, ticket status updates, and lifecycle logging in a single atomic database transaction.
