@@ -47,6 +47,7 @@ export const SignUpPage: React.FC = () => {
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingEmail || isSubmittingGoogle) return;
     const validation = validateSignUpForm(formState);
     setErrors(validation.errors);
     if (!validation.isValid) {
@@ -56,53 +57,59 @@ export const SignUpPage: React.FC = () => {
 
     setIsSubmittingEmail(true);
     setFeedback(null);
-    const result = await signUpWithEmail({
-      fullName: formState.fullName,
-      email: formState.email,
-      password: formState.password,
-      department: formState.department,
-      requestedRole: formState.role,
-    });
-    setIsSubmittingEmail(false);
+    try {
+      const result = await signUpWithEmail({
+        fullName: formState.fullName,
+        email: formState.email,
+        password: formState.password,
+        department: formState.department,
+        requestedRole: formState.role,
+      });
 
-    if (result.ok && !result.requiresEmailVerification) {
-      navigate('/workspace/dashboard', { replace: true });
-      return;
-    }
+      if (result.ok && !result.requiresEmailVerification) {
+        navigate('/workspace/dashboard', { replace: true });
+        return;
+      }
 
-    if (result.ok && result.requiresEmailVerification) {
+      if (result.ok && result.requiresEmailVerification) {
+        setFeedback({
+          type: 'verification',
+          title: 'Verify Your Institutional Email',
+          message: result.message,
+        });
+        return;
+      }
+
       setFeedback({
-        type: 'verification',
-        title: 'Verify Your Institutional Email',
+        type: 'error',
+        title: 'Registration Could Not Be Completed',
         message: result.message,
       });
-      return;
+    } finally {
+      setIsSubmittingEmail(false);
     }
-
-    setFeedback({
-      type: 'error',
-      title: 'Registration Could Not Be Completed',
-      message: result.message,
-    });
   };
 
   const handleGoogleSignUp = async () => {
+    if (isSubmittingGoogle || isSubmittingEmail) return;
     setErrors({});
     setFeedback(null);
     setIsSubmittingGoogle(true);
-    const result = await signInWithGoogle();
-    setIsSubmittingGoogle(false);
+    try {
+      const result = await signInWithGoogle();
+      if (result.ok) {
+        navigate('/workspace/dashboard', { replace: true });
+        return;
+      }
 
-    if (result.ok) {
-      navigate('/workspace/dashboard', { replace: true });
-      return;
+      setFeedback({
+        type: 'error',
+        title: 'Google Registration Notice',
+        message: result.message,
+      });
+    } finally {
+      setIsSubmittingGoogle(false);
     }
-
-    setFeedback({
-      type: 'error',
-      title: 'Google Registration Notice',
-      message: result.message,
-    });
   };
 
   return (

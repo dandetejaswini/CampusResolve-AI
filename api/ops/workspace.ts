@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { verifyFirebaseIdTokenServerSide } from '../auth/firebase-claim.js';
 import { ActorRole, RequestStatus } from '../../src/types/domain.js';
 import {
   AIRetrievalLogRecord,
@@ -369,27 +370,63 @@ export async function verifyAuthenticatedProfileFromHeaders(
       .limit(1)
       .maybeSingle();
 
-    if (error || !data) {
+    if (!error && data) {
+      if (data.account_status !== 'active') {
+        return {
+          verified: false,
+          errorMessage: `Account status is '${data.account_status}'. Only active accounts may perform workspace operations.`,
+        };
+      }
+
       return {
-        verified: false,
-        errorMessage:
-          error?.message ||
-          'Authenticated session does not match an active institutional profile in public.app_profiles.',
+        verified: true,
+        profile: data as VerifiedCallerIdentity,
+        bearerToken,
+        client,
       };
     }
 
-    if (data.account_status !== 'active') {
-      return {
-        verified: false,
-        errorMessage: `Account status is '${data.account_status}'. Only active accounts may perform workspace operations.`,
-      };
+    // Fallback for Firebase Google ID tokens when PostgREST RLS did not match `role: "authenticated"`:
+    // Verify the Firebase ID token cryptographically on the server and look up the profile by verified UID.
+    const serviceRoleClient = createServiceRoleSupabaseClient();
+    if (serviceRoleClient) {
+      try {
+        const verifiedFirebase = await verifyFirebaseIdTokenServerSide(
+          bearerToken
+        );
+        const { data: fbProfile, error: fbError } = await serviceRoleClient
+          .from('app_profiles')
+          .select(
+            'id, auth_provider, provider_subject, verified_email, display_name, department, office_or_cohort, actor_role, account_status'
+          )
+          .eq('auth_provider', 'firebase_google')
+          .eq('provider_subject', verifiedFirebase.uid)
+          .maybeSingle();
+
+        if (!fbError && fbProfile) {
+          if (fbProfile.account_status !== 'active') {
+            return {
+              verified: false,
+              errorMessage: `Account status is '${fbProfile.account_status}'. Only active accounts may perform workspace operations.`,
+            };
+          }
+
+          return {
+            verified: true,
+            profile: fbProfile as VerifiedCallerIdentity,
+            bearerToken,
+            client: serviceRoleClient,
+          };
+        }
+      } catch {
+        // Token is not a valid Firebase ID token; fall through to standard rejection below
+      }
     }
 
     return {
-      verified: true,
-      profile: data as VerifiedCallerIdentity,
-      bearerToken,
-      client,
+      verified: false,
+      errorMessage:
+        'Authenticated session does not match an active institutional profile in public.app_profiles.',
     };
   } catch (err) {
     return {
@@ -492,9 +529,13 @@ async function resolveDefaultDatabaseTermId(
 
 async function getOrProvisionRemoteRequester(
   client: SupabaseClient,
-  profile: VerifiedCallerIdentity
+  profile: VerifiedCallerIdentity,
+  injectedServiceClient?: SupabaseClient | null
 ): Promise<RequesterRecord> {
-  const adminClient = createServiceRoleSupabaseClient();
+  const adminClient =
+    injectedServiceClient !== undefined
+      ? injectedServiceClient
+      : createServiceRoleSupabaseClient();
   const rwClient = adminClient || client;
 
   const { data: existing, error: selectErr } = await client
@@ -765,7 +806,11 @@ export async function processWorkspaceOperationRequest(
   // --------------------------------------------------------------------------
   if (upperMethod === 'GET' && action === 'bootstrap') {
     try {
-      const requester = await getOrProvisionRemoteRequester(client, profile);
+      const requester = await getOrProvisionRemoteRequester(
+        client,
+        profile,
+        injectedContext ? injectedServiceClient ?? null : undefined
+      );
 
       const [
         ticketsRes,
@@ -1102,7 +1147,11 @@ export async function processWorkspaceOperationRequest(
           ? priorityRaw
           : 'Standard Priority';
 
-      const requester = await getOrProvisionRemoteRequester(client, profile);
+      const requester = await getOrProvisionRemoteRequester(
+        client,
+        profile,
+        injectedContext ? injectedServiceClient ?? null : undefined
+      );
       const dbTermId = await resolveDefaultDatabaseTermId(client);
       const nowIso = new Date().toISOString();
 

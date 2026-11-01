@@ -46,6 +46,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const res = validateProfileForm(formState);
     setErrors(res.errors);
     if (!res.isValid) {
@@ -55,16 +56,19 @@ export const ProfilePage: React.FC = () => {
 
     setIsSaving(true);
     setSaveFeedback(null);
-    const updateRes = await updateProfile({
-      displayName: formState.displayName,
-      department: formState.departmentUnit,
-      officeOrCohort: formState.officeOrCohort || null,
-    });
-    setIsSaving(false);
-    setSaveFeedback({
-      ok: updateRes.ok,
-      message: updateRes.message,
-    });
+    try {
+      const updateRes = await updateProfile({
+        displayName: formState.displayName,
+        department: formState.departmentUnit,
+        officeOrCohort: formState.officeOrCohort || null,
+      });
+      setSaveFeedback({
+        ok: updateRes.ok,
+        message: updateRes.message,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

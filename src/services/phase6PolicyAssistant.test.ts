@@ -765,4 +765,74 @@ describe('Phase 6: AI Policy Assistant — 10 Core Verification Scenarios & Inte
       'Feedback update must preserve exact retrieved_policy_versions'
     );
   });
+
+  it('links escalation ticket to policy inquiry log with full audit trail', async () => {
+    const corpus = getReferenceCorpus();
+    const mockDb = createMockSupabaseClient(
+      corpus.policyDocuments,
+      corpus.knowledgeArticles
+    );
+    const ctx: InjectedPolicyAssistantTestContext = {
+      profile: learnerProfile,
+      client: mockDb as unknown as SupabaseClient,
+      serviceRoleClient: mockDb as unknown as SupabaseClient,
+    };
+
+    const queryRes = await processPolicyAssistantRequest(
+      'POST',
+      { query: 'Can I drop a class after week 8 without an F grade?' },
+      {},
+      ctx
+    );
+    assert.equal(queryRes.status, 200);
+    const queryId = queryRes.body.retrievalLog.query_id;
+
+    const linkRes = await processPolicyAssistantRequest(
+      'POST',
+      {
+        action: 'link_escalation_ticket',
+        queryId,
+        ticketId: 'TKT-2026-100888',
+      },
+      {},
+      ctx
+    );
+    assert.equal(linkRes.status, 200);
+    assert.equal(linkRes.body.ok, true);
+    assert.equal(linkRes.body.retrievalLog.escalated_ticket_id, 'TKT-2026-100888');
+
+    const updated = mockDb.insertedLogs.find((l) => l.query_id === queryId);
+    assert.ok(updated);
+    assert.equal(updated.escalated_ticket_id, 'TKT-2026-100888');
+  });
+
+  it('falls back to deterministic synthesis when custom Gemini synthesizer throws error', async () => {
+    const corpus = getReferenceCorpus();
+    const mockDb = createMockSupabaseClient(
+      corpus.policyDocuments,
+      corpus.knowledgeArticles
+    );
+    const ctx: InjectedPolicyAssistantTestContext = {
+      profile: learnerProfile,
+      client: mockDb as unknown as SupabaseClient,
+      serviceRoleClient: mockDb as unknown as SupabaseClient,
+      customGeminiSynthesizer: async () => {
+        throw new Error('Upstream model quota or timeout error');
+      },
+    };
+
+    const res = await processPolicyAssistantRequest(
+      'POST',
+      { query: 'What is the minimum GPA required to maintain SAP status?' },
+      {},
+      ctx
+    );
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.synthesisMode, 'deterministic_fallback');
+    assert.equal(res.body.geminiApiStatus, 'fallback_after_error');
+    assert.ok(res.body.answer.includes('POL-FINAID-2026-002'));
+    assert.ok(res.body.answer.includes('v2.0'));
+    assert.ok(res.body.citedSources.length > 0);
+  });
 });

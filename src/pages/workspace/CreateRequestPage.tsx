@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
@@ -42,6 +42,26 @@ const DEPARTMENT_OPTIONS = [
   {
     value: 'Disability & Accessibility Services Office',
     label: 'Disability & Accessibility Services Office',
+  },
+  {
+    value: 'Financial Aid Appeals & Compliance Review Committee',
+    label: 'Financial Aid Appeals & Compliance Review Committee',
+  },
+  {
+    value: 'Academic Senate Registration Review Board',
+    label: 'Academic Senate Registration Review Board',
+  },
+  {
+    value: 'Information Security & Infrastructure Escalation Unit',
+    label: 'Information Security & Infrastructure Escalation Unit',
+  },
+  {
+    value: 'ADA / Section 504 Compliance Review Panel',
+    label: 'ADA / Section 504 Compliance Review Panel',
+  },
+  {
+    value: 'Support Staff Intake Triage Queue (Human Review Required)',
+    label: 'Support Staff Intake Triage Queue (Human Review Required)',
   },
   {
     value: 'Academic Administration Review Office',
@@ -106,6 +126,22 @@ export const CreateRequestPage: React.FC = () => {
     sla: SLARecord;
   } | null>(null);
 
+  useEffect(() => {
+    if (prefill) {
+      setFormState({
+        subject: prefill.subject || '',
+        category: prefill.category || '',
+        departmentTarget: prefill.departmentTarget || '',
+        urgencyLevel: prefill.urgencyLevel || '',
+        courseOrPolicyCode: prefill.courseOrPolicyCode || '',
+        description: prefill.description || '',
+        policyAcknowledged: Boolean(prefill.policyAcknowledged),
+      });
+      setErrors({});
+      setSubmitError(null);
+    }
+  }, [prefill]);
+
   const handleValidateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const result = validateCreateRequestForm(formState);
@@ -117,6 +153,7 @@ export const CreateRequestPage: React.FC = () => {
   };
 
   const handleConfirmSubmission = async () => {
+    if (isSubmitting) return;
     setConfirmDialogOpen(false);
     setIsSubmitting(true);
     setSubmitError(null);
@@ -129,6 +166,9 @@ export const CreateRequestPage: React.FC = () => {
         urgencyLevel: formState.urgencyLevel,
         courseOrPolicyCode: formState.courseOrPolicyCode,
         description: formState.description,
+        idempotencyKey: prefill?.fromQueryId
+          ? `escalate_policy_${prefill.fromQueryId}`
+          : `req_${Date.now()}_${encodeURIComponent(formState.subject.slice(0, 10))}`,
       });
 
       if (prefill?.fromQueryId && res.ticket?.ticket_id) {
@@ -147,7 +187,7 @@ export const CreateRequestPage: React.FC = () => {
         assignment: res.assignment,
         sla: res.sla,
       });
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
     } catch (err) {
       setSubmitError(
         err instanceof Error

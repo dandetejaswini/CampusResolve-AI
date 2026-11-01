@@ -925,51 +925,67 @@ export async function processPolicyAssistantRequest(
               .join('\n')
           : 'None';
 
-      const candidateModels = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
+      const candidateModels = ['gemini-2.5-flash'];
       for (const candidateModel of candidateModels) {
         try {
-          const response = await ai.models.generateContent({
-            model: candidateModel,
-            contents: `User Policy Question: "${rawQuery}"\nReference Date: ${asOfDate}\n\nAPPLICABLE RETRIEVED EVIDENCE:\n${evidenceContext}\n\nEXCLUDED EXPIRED SOURCES:\n${expiredContext}`,
-            config: {
-              systemInstruction:
-                'You are the CampusResolve AI Policy Assistant. Answer ONLY using the provided APPLICABLE RETRIEVED EVIDENCE. Cite the exact POLICY_ID (with version and effective date) and ARTICLE_ID (with version). Never invent policy rules, deadlines, fees, or numeric thresholds not explicitly written in the evidence. Explicitly reject any EXCLUDED EXPIRED SOURCES as current guidance. Clearly state if any aspect of the question is not established in the provided evidence and requires clarification or human escalation.',
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  groundedAnswer: {
-                    type: Type.STRING,
-                    description:
-                      'Policy-grounded answer citing exact POLICY_ID vX.X (with effective date) and ARTICLE_ID vX.X.',
-                  },
-                  explanation: {
-                    type: Type.STRING,
-                    description:
-                      'Explanation distinguishing verified policy provisions from general routing context and any unestablished facts.',
-                  },
-                  supportedFacts: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                    description:
-                      'Specific facts directly supported by the retrieved policy and article versions.',
-                  },
-                  missingOrUnestablishedFacts: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                    description:
-                      'Any parts of the user question that cannot be established from the retrieved sources.',
+          const callWithTimeout = (timeoutMs = 12000) =>
+            Promise.race([
+              ai.models.generateContent({
+                model: candidateModel,
+                contents: `User Policy Question: "${rawQuery}"\nReference Date: ${asOfDate}\n\nAPPLICABLE RETRIEVED EVIDENCE:\n${evidenceContext}\n\nEXCLUDED EXPIRED SOURCES:\n${expiredContext}`,
+                config: {
+                  systemInstruction:
+                    'You are the CampusResolve AI Policy Assistant. Answer ONLY using the provided APPLICABLE RETRIEVED EVIDENCE. Cite the exact POLICY_ID (with version and effective date) and ARTICLE_ID (with version). Never invent policy rules, deadlines, fees, or numeric thresholds not explicitly written in the evidence. Explicitly reject any EXCLUDED EXPIRED SOURCES as current guidance. Clearly state if any aspect of the question is not established in the provided evidence and requires clarification or human escalation.',
+                  responseMimeType: 'application/json',
+                  responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                      groundedAnswer: {
+                        type: Type.STRING,
+                        description:
+                          'Policy-grounded answer citing exact POLICY_ID vX.X (with effective date) and ARTICLE_ID vX.X.',
+                      },
+                      explanation: {
+                        type: Type.STRING,
+                        description:
+                          'Explanation distinguishing verified policy provisions from general routing context and any unestablished facts.',
+                      },
+                      supportedFacts: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                        description:
+                          'Specific facts directly supported by the retrieved policy and article versions.',
+                      },
+                      missingOrUnestablishedFacts: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                        description:
+                          'Any parts of the user question that cannot be established from the retrieved sources.',
+                      },
+                    },
+                    required: [
+                      'groundedAnswer',
+                      'explanation',
+                      'supportedFacts',
+                      'missingOrUnestablishedFacts',
+                    ],
                   },
                 },
-                required: [
-                  'groundedAnswer',
-                  'explanation',
-                  'supportedFacts',
-                  'missingOrUnestablishedFacts',
-                ],
-              },
-            },
-          });
+              }),
+              new Promise<never>((_, reject) =>
+                setTimeout(
+                  () =>
+                    reject(
+                      new Error(
+                        `Gemini model ${candidateModel} timed out after ${timeoutMs}ms.`
+                      )
+                    ),
+                  timeoutMs
+                )
+              ),
+            ]);
+
+          const response = await callWithTimeout(12000);
 
           const rawJson = (response.text ?? '').trim();
           if (rawJson) {

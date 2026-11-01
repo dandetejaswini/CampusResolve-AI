@@ -407,21 +407,25 @@ export async function triggerWelcomeEmailIfEligible(
     ) {
       const sentAtIso = data?.sentAt || new Date().toISOString();
 
-      await repo.upsertWelcomeEmailLog({
-        profile_id: profile.id,
-        recipient_email: profile.verified_email,
-        auth_provider: profile.auth_provider,
-        sender_email: data?.senderEmail || 'campusresolveai@gmail.com',
-        delivery_status: 'sent',
-        attempt_count: nextAttemptCount,
-        failure_details: null,
-        sent_at: sentAtIso,
-      });
+      await repo
+        .upsertWelcomeEmailLog({
+          profile_id: profile.id,
+          recipient_email: profile.verified_email,
+          auth_provider: profile.auth_provider,
+          sender_email: data?.senderEmail || 'campusresolveai@gmail.com',
+          delivery_status: 'sent',
+          attempt_count: nextAttemptCount,
+          failure_details: null,
+          sent_at: sentAtIso,
+        })
+        .catch(() => null);
 
-      const updatedProfile = await repo.markWelcomeEmailSent(
-        profile.id,
-        sentAtIso
-      );
+      const updatedProfile = await repo
+        .markWelcomeEmailSent(profile.id, sentAtIso)
+        .catch(() => ({
+          ...profile,
+          welcome_email_sent_at: sentAtIso,
+        }));
 
       if (deliveryStatusRaw === 'already_sent') {
         return {
@@ -449,18 +453,20 @@ export async function triggerWelcomeEmailIfEligible(
     }
 
     if (deliveryStatusRaw === 'skipped_unconfigured') {
-      await repo.upsertWelcomeEmailLog({
-        profile_id: profile.id,
-        recipient_email: profile.verified_email,
-        auth_provider: profile.auth_provider,
-        sender_email: 'campusresolveai@gmail.com',
-        delivery_status: 'skipped_unconfigured',
-        attempt_count: nextAttemptCount,
-        failure_details:
-          data?.failureDetails ||
-          'APPS_SCRIPT_WEB_APP_URL or APPS_SCRIPT_SHARED_SECRET is not configured on the server.',
-        sent_at: null,
-      });
+      await repo
+        .upsertWelcomeEmailLog({
+          profile_id: profile.id,
+          recipient_email: profile.verified_email,
+          auth_provider: profile.auth_provider,
+          sender_email: 'campusresolveai@gmail.com',
+          delivery_status: 'skipped_unconfigured',
+          attempt_count: nextAttemptCount,
+          failure_details:
+            data?.failureDetails ||
+            'APPS_SCRIPT_WEB_APP_URL or APPS_SCRIPT_SHARED_SECRET is not configured on the server.',
+          sent_at: null,
+        })
+        .catch(() => null);
 
       return {
         triggered: false,
@@ -481,16 +487,18 @@ export async function triggerWelcomeEmailIfEligible(
       data?.message ||
       `HTTP ${response.status} from /api/auth/welcome-email`;
 
-    await repo.upsertWelcomeEmailLog({
-      profile_id: profile.id,
-      recipient_email: profile.verified_email,
-      auth_provider: profile.auth_provider,
-      sender_email: 'campusresolveai@gmail.com',
-      delivery_status: 'failed',
-      attempt_count: nextAttemptCount,
-      failure_details: failureDetails,
-      sent_at: null,
-    });
+    await repo
+      .upsertWelcomeEmailLog({
+        profile_id: profile.id,
+        recipient_email: profile.verified_email,
+        auth_provider: profile.auth_provider,
+        sender_email: 'campusresolveai@gmail.com',
+        delivery_status: 'failed',
+        attempt_count: nextAttemptCount,
+        failure_details: failureDetails,
+        sent_at: null,
+      })
+      .catch(() => null);
 
     return {
       triggered: false,
@@ -609,7 +617,7 @@ export function createSupabaseProfileRepository(
         }
         throw new IdentityResolutionError(
           'DATABASE_ERROR',
-          `Unable to provision institutional profile in Supabase: ${error.message}`
+          'We could not complete your institutional profile setup right now. Please try signing in again.'
         );
       }
 
@@ -638,7 +646,7 @@ export function createSupabaseProfileRepository(
       if (error) {
         throw new IdentityResolutionError(
           'DATABASE_ERROR',
-          `Failed to update profile attributes: ${error.message}`
+          'We could not update your institutional profile attributes right now. Please try again.'
         );
       }
 

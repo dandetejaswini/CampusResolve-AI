@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { verifyFirebaseIdTokenServerSide } from './firebase-claim.js';
+import { createSupabaseProfileRepository } from '../../src/services/identityService.js';
 
 export const DEDICATED_GMAIL_SENDER = 'campusresolveai@gmail.com';
 
@@ -116,18 +118,56 @@ async function defaultVerifyCallerProfile(
       .eq('id', expectedProfileId)
       .maybeSingle();
 
-    if (error || !data) {
+    if (!error && data) {
       return {
-        verified: false,
-        errorMessage:
-          error?.message ||
-          'Authenticated caller does not own an active profile matching the requested profileId.',
+        verified: true,
+        profile: data as VerifiedCallerProfile,
       };
     }
 
+    // Fallback for Firebase Google ID tokens when PostgREST RLS did not match `role: "authenticated"`:
+    // Verify the Firebase ID token cryptographically on the server and verify profile ownership by UID + expectedProfileId.
+    const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '')
+      .trim()
+      .replace(/^["']|["']$/g, '');
+    if (serviceRoleKey && !serviceRoleKey.includes('your-service-role-key')) {
+      try {
+        const verifiedFirebase = await verifyFirebaseIdTokenServerSide(
+          bearerToken
+        );
+        const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        });
+
+        const { data: fbProfile, error: fbError } = await serviceClient
+          .from('app_profiles')
+          .select(
+            'id, verified_email, display_name, auth_provider, actor_role, account_status, welcome_email_sent_at'
+          )
+          .eq('id', expectedProfileId)
+          .eq('auth_provider', 'firebase_google')
+          .eq('provider_subject', verifiedFirebase.uid)
+          .maybeSingle();
+
+        if (!fbError && fbProfile) {
+          return {
+            verified: true,
+            profile: fbProfile as VerifiedCallerProfile,
+          };
+        }
+      } catch {
+        // Not a valid Firebase ID token; fall through to standard rejection
+      }
+    }
+
     return {
-      verified: true,
-      profile: data as VerifiedCallerProfile,
+      verified: false,
+      errorMessage:
+        'Authenticated caller does not own an active profile matching the requested profileId.',
     };
   } catch (err) {
     return {
@@ -137,6 +177,62 @@ async function defaultVerifyCallerProfile(
           ? err.message
           : 'Failed to verify caller profile against Supabase.',
     };
+  }
+}
+
+async function persistServerWelcomeEmailOutcome(params: {
+  profile: VerifiedCallerProfile;
+  deliveryStatus: 'sent' | 'failed' | 'skipped_unconfigured';
+  sentAtIso: string | null;
+  failureDetails: string | null;
+  senderEmail: string;
+}): Promise<void> {
+  const supabaseUrl = (
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    ''
+  ).trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '')
+    .trim()
+    .replace(/^["']|["']$/g, '');
+
+  if (
+    !supabaseUrl ||
+    !serviceRoleKey ||
+    supabaseUrl.includes('your-project-ref') ||
+    serviceRoleKey.includes('your-service-role-key')
+  ) {
+    return;
+  }
+
+  try {
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+    const repo = createSupabaseProfileRepository(serviceClient);
+    const existingLog = await repo.getWelcomeEmailLog(params.profile.id);
+    const nextAttemptCount = (existingLog?.attempt_count ?? 0) + 1;
+
+    await repo.upsertWelcomeEmailLog({
+      profile_id: params.profile.id,
+      recipient_email: params.profile.verified_email,
+      auth_provider: params.profile.auth_provider,
+      sender_email: params.senderEmail,
+      delivery_status: params.deliveryStatus,
+      attempt_count: nextAttemptCount,
+      failure_details: params.failureDetails,
+      sent_at: params.sentAtIso,
+    });
+
+    if (params.deliveryStatus === 'sent' && params.sentAtIso) {
+      await repo.markWelcomeEmailSent(params.profile.id, params.sentAtIso);
+    }
+  } catch {
+    // Non-fatal: client-side repository also records welcome email status when permitted by RLS
   }
 }
 
@@ -422,6 +518,16 @@ export async function processWelcomeEmailRequest(
     const alreadySentByScript = Boolean(parsed.alreadySent);
     const apiSucceeded = Boolean(parsed.emailSendApiSucceeded);
     const sentAtIso = parsed.sentAt || new Date().toISOString();
+
+    if (!deps.verifyCallerProfile) {
+      await persistServerWelcomeEmailOutcome({
+        profile: verifiedProfile,
+        deliveryStatus: 'sent',
+        sentAtIso,
+        failureDetails: null,
+        senderEmail: parsed.senderEmail || DEDICATED_GMAIL_SENDER,
+      });
+    }
 
     return {
       status: 200,

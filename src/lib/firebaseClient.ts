@@ -6,6 +6,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { getFirebaseEnvConfig } from './envConfig';
+import type { AppProfile } from '../services/identityService';
 
 export const EXPECTED_FIREBASE_PROJECT_ID = 'campusresolveai';
 export const EXPECTED_FIREBASE_PROJECT_NUMBER = '671221539968';
@@ -58,38 +59,49 @@ export function getFirebaseAuthClient(): {
   };
 }
 
+export interface FirebaseClaimProvisionOptions {
+  displayName?: string;
+  department?: string;
+  officeOrCohort?: string | null;
+  requestedRoleNote?: string | null;
+}
+
 export interface FirebaseClaimEnsureResult {
+  ok: boolean;
   hasAuthenticatedRoleClaim: boolean;
+  profile?: AppProfile;
+  isNewProfile?: boolean;
+  errorCode?: string;
   warningMessage?: string;
 }
 
 /**
- * Ensures the signed-in Firebase user carries the `role: "authenticated"` custom claim
- * required by Supabase Third-Party Auth so PostgreSQL Row Level Security runs under
- * the `authenticated` role.
- *
- * 1. Inspects the current ID token claims. If `role === "authenticated"` is already present
- *    (e.g., via Firebase Blocking Function or a previous login), returns immediately.
- * 2. Otherwise, calls `/api/auth/firebase-claim` (server-side Firebase Admin SDK) which
- *    works on the Firebase free Spark plan without requiring GCIP blocking functions,
- *    and forces an ID token refresh (`getIdToken(true)`).
+ * Verifies the signed-in Firebase user's ID token on the server (`/api/auth/firebase-claim`),
+ * assigns the `role: "authenticated"` custom claim when Firebase Admin credentials are configured,
+ * and provisions or resolves the user's `public.app_profiles` record server-side using the
+ * verified token identity.
  */
 export async function ensureFirebaseAuthenticatedClaim(
-  user: FirebaseUser
+  user: FirebaseUser,
+  options?: FirebaseClaimProvisionOptions
 ): Promise<FirebaseClaimEnsureResult> {
   try {
     const tokenResult = await user.getIdTokenResult(false);
-    if (tokenResult.claims.role === 'authenticated') {
-      return { hasAuthenticatedRoleClaim: true };
-    }
-
     const rawIdToken = tokenResult.token;
+
     const response = await fetch('/api/auth/firebase-claim', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${rawIdToken}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        action: 'provision_profile',
+        displayName: options?.displayName,
+        department: options?.department,
+        officeOrCohort: options?.officeOrCohort,
+        requestedRoleNote: options?.requestedRoleNote,
+      }),
     });
 
     const data = await response.json().catch(() => null);
@@ -100,23 +112,82 @@ export async function ensureFirebaseAuthenticatedClaim(
       }
       const refreshedResult = await user.getIdTokenResult(false);
       return {
-        hasAuthenticatedRoleClaim: refreshedResult.claims.role === 'authenticated',
+        ok: true,
+        hasAuthenticatedRoleClaim:
+          refreshedResult.claims.role === 'authenticated' ||
+          Boolean(data.roleClaimAssigned),
+        profile: data.profile as AppProfile | undefined,
+        isNewProfile:
+          typeof data.isNewProfile === 'boolean' ? data.isNewProfile : undefined,
       };
     }
 
     return {
-      hasAuthenticatedRoleClaim: false,
+      ok: false,
+      hasAuthenticatedRoleClaim: tokenResult.claims.role === 'authenticated',
+      errorCode: data?.code,
       warningMessage:
         data?.message ||
-        'Firebase ID token does not yet contain role="authenticated". Configure Firebase Admin credentials or the Supabase Third-Party Auth role claim for RLS access.',
+        'We could not complete your Google Sign-In profile setup at this time. Please try again.',
     };
-  } catch (error) {
+  } catch {
+    const fallbackClaims = await user.getIdTokenResult(false).catch(() => null);
+    const hasClaim = fallbackClaims?.claims?.role === 'authenticated';
     return {
-      hasAuthenticatedRoleClaim: false,
+      ok: hasClaim,
+      hasAuthenticatedRoleClaim: hasClaim,
       warningMessage:
-        error instanceof Error
-          ? error.message
-          : 'Unable to verify Firebase custom role claim.',
+        'Unable to reach the authentication service. Please check your connection and try again.',
     };
   }
+}
+
+/**
+ * Updates editable institutional profile fields for a Firebase Google user via the
+ * server-verified `/api/auth/firebase-claim` endpoint.
+ */
+export async function updateFirebaseProfileServerSide(
+  user: FirebaseUser,
+  updates: {
+    displayName: string;
+    department: string;
+    officeOrCohort?: string | null;
+  }
+): Promise<{
+  ok: boolean;
+  profile?: AppProfile;
+  errorCode?: string;
+  message?: string;
+}> {
+  const rawIdToken = await user.getIdToken(false);
+  const response = await fetch('/api/auth/firebase-claim', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${rawIdToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      action: 'update_profile',
+      displayName: updates.displayName,
+      department: updates.department,
+      officeOrCohort: updates.officeOrCohort,
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (response.ok && data?.ok && data?.profile) {
+    return {
+      ok: true,
+      profile: data.profile as AppProfile,
+      message: data.message,
+    };
+  }
+
+  return {
+    ok: false,
+    errorCode: data?.code,
+    message:
+      data?.message ||
+      'We could not update your institutional profile attributes right now. Please try again.',
+  };
 }

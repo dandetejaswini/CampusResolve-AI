@@ -44,10 +44,11 @@ export const NotificationsPage: React.FC = () => {
   );
 
   const handleMarkAllRead = async () => {
+    if (markingRead) return;
     setMarkingRead(true);
     try {
       await markAllNotificationsRead();
-      await refreshWorkspace();
+      refreshWorkspace().catch(() => {});
     } finally {
       setMarkingRead(false);
     }

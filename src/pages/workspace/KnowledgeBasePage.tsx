@@ -131,6 +131,7 @@ export const KnowledgeBasePage: React.FC = () => {
 
   const handlePublishPolicy = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (publishing) return;
     if (!newTitle.trim() || !newSummary.trim()) {
       setPublishError('Both policy title and authoritative summary are required.');
       return;
@@ -146,11 +147,11 @@ export const KnowledgeBasePage: React.FC = () => {
         summary: newSummary.trim(),
         content: (newContent.trim() || newSummary.trim()),
       });
-      await refreshWorkspace({
+      refreshWorkspace({
         kbPage,
         kbDomain: domainFilter,
         kbSearch: searchTerm,
-      });
+      }).catch(() => {});
       setNewTitle('');
       setNewSummary('');
       setNewContent('');

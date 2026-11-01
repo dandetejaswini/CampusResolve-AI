@@ -41,24 +41,27 @@ export const ResetPasswordPage: React.FC = () => {
       return;
     }
 
+    if (submitting) return;
     setSubmitting(true);
     setStatusFeedback(null);
-    const result = await updatePassword(password);
-    setSubmitting(false);
-
-    if (result.ok) {
-      setStatusFeedback({
-        type: 'success',
-        message: result.message,
-      });
-      setTimeout(() => {
-        navigate('/workspace/dashboard', { replace: true });
-      }, 1500);
-    } else {
-      setStatusFeedback({
-        type: 'error',
-        message: result.message,
-      });
+    try {
+      const result = await updatePassword(password);
+      if (result.ok) {
+        setStatusFeedback({
+          type: 'success',
+          message: result.message,
+        });
+        setTimeout(() => {
+          navigate('/workspace/dashboard', { replace: true });
+        }, 1500);
+      } else {
+        setStatusFeedback({
+          type: 'error',
+          message: result.message,
+        });
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 

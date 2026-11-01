@@ -117,7 +117,8 @@ export async function resolveActiveBearerToken(): Promise<string | null> {
 export async function authorizedJsonFetch<T>(
   url: string,
   options: RequestInit = {},
-  customFetch?: typeof fetch
+  customFetch?: typeof fetch,
+  timeoutMs = 30000
 ): Promise<T> {
   const token = customFetch ? null : await resolveActiveBearerToken();
   const headers: Record<string, string> = {
@@ -130,10 +131,35 @@ export async function authorizedJsonFetch<T>(
   }
 
   const fetchImpl = customFetch || fetch;
-  const res = await fetchImpl(url, {
-    ...options,
-    headers,
-  });
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort(
+      new Error(
+        `Workspace request timed out after ${Math.round(timeoutMs / 1000)} seconds. Please retry.`
+      )
+    );
+  }, timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetchImpl(url, {
+      ...options,
+      signal: options.signal || controller.signal,
+      headers,
+    });
+  } catch (fetchErr: any) {
+    if (fetchErr?.name === 'AbortError' || controller.signal.aborted) {
+      throw new Error(
+        `The workspace service request timed out (${Math.round(
+          timeoutMs / 1000
+        )}s). Please check your connection and retry.`
+      );
+    }
+    throw fetchErr;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const rawText = await res.text();
   let data: any = null;
@@ -191,6 +217,8 @@ export async function createOperationalTicket(input: {
   urgencyLevel: string;
   courseOrPolicyCode?: string;
   description: string;
+  idempotencyKey?: string;
+  saveAsDraft?: boolean;
 }): Promise<{
   ok: boolean;
   ticket: TicketRecord;

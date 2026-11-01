@@ -225,7 +225,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleRunBenchmark = async () => {
-    if (!isAuthorizedForGroundTruthEvaluation) return;
+    if (!isAuthorizedForGroundTruthEvaluation || benchmarkLoading) return;
     setBenchmarkLoading(true);
     setBenchmarkError(null);
     try {

@@ -20,6 +20,7 @@ import {
 import {
   getFirebaseAuthClient,
   ensureFirebaseAuthenticatedClaim,
+  updateFirebaseProfileServerSide,
   EXPECTED_FIREBASE_PROJECT_ID,
 } from '../lib/firebaseClient';
 import {
@@ -269,13 +270,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         try {
-          // 1. Ensure custom claim role: 'authenticated' is present on the Firebase token
-          const claimStatus = await ensureFirebaseAuthenticatedClaim(fbUser);
-          if (!claimStatus.hasAuthenticatedRoleClaim && claimStatus.warningMessage) {
-            setAuthWarning(claimStatus.warningMessage);
-          }
+          // 1. Verify Firebase ID token on the server and provision/resolve the institutional profile
+          const claimStatus = await ensureFirebaseAuthenticatedClaim(fbUser, {
+            displayName: fbUser.displayName || undefined,
+            department: 'Unassigned Academic Unit',
+            requestedRoleNote: null,
+          });
 
-          // 2. Create the official Supabase Third-Party Auth data client
+          // Create the Supabase Third-Party Auth client for subsequent operations
           const firebaseSupabaseClient = createSupabaseFirebaseDataClient(
             async () => {
               return await fbUser.getIdToken(false);
@@ -285,24 +287,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!firebaseSupabaseClient) {
             throw new IdentityResolutionError(
               'DATABASE_ERROR',
-              'Could not initialize Supabase Third-Party Auth client for Firebase.'
+              'Could not initialize institutional directory client for Google Sign-In.'
             );
           }
 
           const repo = createSupabaseProfileRepository(firebaseSupabaseClient);
 
-          const { profile: resolvedProfile } = await resolveOrCreateAppProfile(
-            {
-              authProvider: 'firebase_google',
-              providerSubject: fbUser.uid,
-              email: fbUser.email,
-              emailVerified: fbUser.emailVerified,
-              displayName: fbUser.displayName || undefined,
-              department: 'Unassigned Academic Unit',
-              requestedRoleNote: null,
-            },
-            repo
-          );
+          let resolvedProfile: AppProfile;
+
+          if (claimStatus.ok && claimStatus.profile) {
+            // Authoritative profile returned directly from server-verified /api/auth/firebase-claim
+            resolvedProfile = claimStatus.profile;
+          } else if (!claimStatus.ok && claimStatus.errorCode) {
+            const mappedCode =
+              claimStatus.errorCode === 'CROSS_PROVIDER_EMAIL_CONFLICT'
+                ? 'CROSS_PROVIDER_EMAIL_CONFLICT'
+                : claimStatus.errorCode === 'ACCOUNT_SUSPENDED'
+                ? 'ACCOUNT_SUSPENDED'
+                : claimStatus.errorCode === 'UNVERIFIED_GOOGLE_EMAIL'
+                ? 'EMAIL_NOT_VERIFIED'
+                : 'DATABASE_ERROR';
+            throw new IdentityResolutionError(
+              mappedCode,
+              claimStatus.warningMessage ||
+                'We could not complete your Google Sign-In profile setup at this time. Please try again.'
+            );
+          } else if (claimStatus.hasAuthenticatedRoleClaim) {
+            const existing = await repo.findByProviderIdentity('firebase_google', fbUser.uid);
+            if (existing) {
+              resolvedProfile = existing;
+            } else {
+              throw new IdentityResolutionError(
+                'DATABASE_ERROR',
+                claimStatus.warningMessage ||
+                  'Your institutional profile could not be provisioned automatically. Please ensure SUPABASE_SERVICE_ROLE_KEY is configured in your server environment.'
+              );
+            }
+          } else {
+            throw new IdentityResolutionError(
+              'DATABASE_ERROR',
+              claimStatus.warningMessage ||
+                'We could not complete your Google Sign-In profile setup at this time. Please try signing in again.'
+            );
+          }
 
           const fbIdToken = await fbUser.getIdToken(false);
 
@@ -800,6 +827,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             message: 'Your Google authentication session has expired. Please sign in again.',
           };
         }
+
+        const serverUpdate = await updateFirebaseProfileServerSide(
+          currentUser,
+          updates
+        );
+        if (serverUpdate.ok && serverUpdate.profile) {
+          setProfile(serverUpdate.profile);
+          return {
+            ok: true,
+            message: 'Your institutional profile changes have been saved.',
+          };
+        }
+
         dataClient = createSupabaseFirebaseDataClient(async () =>
           currentUser.getIdToken(false)
         );

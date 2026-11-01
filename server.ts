@@ -22,6 +22,7 @@ async function startServer() {
     const result = await processFirebaseClaimRequest({
       method: req.method,
       headers: req.headers,
+      body: req.body,
     });
     res.status(result.status).json(result.body);
   });

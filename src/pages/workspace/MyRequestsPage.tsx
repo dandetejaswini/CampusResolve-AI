@@ -305,14 +305,14 @@ export const MyRequestsPage: React.FC = () => {
   ];
 
   const handleEvaluateSlaAndEscalation = async () => {
-    if (!activeTicket) return;
+    if (!activeTicket || isEvaluatingSla) return;
     setIsEvaluatingSla(true);
     setActionBanner(null);
     try {
       const res = await evaluateTicketSlaAndEscalation({
         ticketId: activeTicket.ticket_id,
       });
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
         message: res.message,
@@ -332,6 +332,7 @@ export const MyRequestsPage: React.FC = () => {
 
   const handleTransitionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isTransitioning) return;
     if (!activeTicket || !targetState || transitionReason.trim().length < 5) {
       setActionBanner({
         ok: false,
@@ -355,7 +356,7 @@ export const MyRequestsPage: React.FC = () => {
       });
       setTransitionReason('');
       setTargetState('');
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
         message: `Ticket ${activeTicket.ticket_id} transitioned to '${targetState}' and audit event recorded.`,
@@ -373,6 +374,7 @@ export const MyRequestsPage: React.FC = () => {
 
   const handleReassignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReassigning) return;
     if (
       !activeTicket ||
       !reassignTargetTeam ||
@@ -396,7 +398,7 @@ export const MyRequestsPage: React.FC = () => {
       });
       setReassignReason('');
       setReassignTargetTeam('');
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
         message: res.message,
@@ -414,7 +416,7 @@ export const MyRequestsPage: React.FC = () => {
 
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeTicket) return;
+    if (!activeTicket || isSubmittingFeedback) return;
 
     setIsSubmittingFeedback(true);
     setActionBanner(null);
@@ -427,7 +429,7 @@ export const MyRequestsPage: React.FC = () => {
         resolutionAccepted,
         comments: feedbackComments,
       });
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
         message: res.message,

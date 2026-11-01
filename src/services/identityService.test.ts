@@ -11,11 +11,16 @@ import {
   triggerWelcomeEmailIfEligible,
   updateOwnAppProfile,
 } from './identityService';
+import crypto from 'node:crypto';
 import {
   processWelcomeEmailRequest,
   DEDICATED_GMAIL_SENDER,
 } from '../../api/auth/welcome-email';
-import { processFirebaseClaimRequest } from '../../api/auth/firebase-claim';
+import {
+  processFirebaseClaimRequest,
+  verifyFirebaseTokenWithGooglePublicCerts,
+} from '../../api/auth/firebase-claim';
+import { processWorkspaceOperationRequest } from '../../api/ops/workspace';
 import { getPublicNavigationItems } from '../components/layout/PublicNavbar';
 import { authorizedJsonFetch } from './workspaceClient';
 
@@ -615,4 +620,327 @@ describe('Phase 2 Unified Identity & Google Apps Script + Gmail Welcome Email Se
     assert.doesNotMatch(sentResult.message, /MailApp\.sendEmail/i);
     assert.doesNotMatch(sentResult.message, /campusresolveai@gmail\.com/i);
   });
+
+  it('Google Sign-In Server-Side Provisioning (Cases 1, 2, 3, 5): provisions single profile from verified token, ignores spoofed client fields/roles, is idempotent on repeat sign-in & refresh, and supports profile updates', async () => {
+    const repo = createInMemoryProfileRepo();
+    const verifiedUid = 'google_verified_uid_778899';
+    const verifiedEmail = 'priya.nair@university.edu';
+
+    const mockVerifyToken = async () => ({
+      uid: verifiedUid,
+      email: verifiedEmail,
+      emailVerified: true,
+      name: 'Priya Nair',
+      aud: 'campusresolveai',
+      iss: 'https://securetoken.google.com/campusresolveai',
+      roleClaim: undefined,
+      verifiedVia: 'google_securetoken_x509' as const,
+    });
+
+    // Case 1 & Case 5: First-time Google Sign-In creates a single valid profile
+    // and ignores spoofed client body fields (uid, email, actorRole)
+    const firstSignIn = await processFirebaseClaimRequest(
+      {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid.firebase.jwt' },
+        body: {
+          action: 'provision_profile',
+          displayName: 'Priya Nair',
+          department: 'School of Engineering',
+          requestedRoleNote: ActorRole.PlatformAdministrator,
+          uid: 'spoofed_attacker_uid',
+          email: 'spoofed_attacker@university.edu',
+          actorRole: ActorRole.PlatformAdministrator,
+        },
+      },
+      {
+        verifyIdTokenFn: mockVerifyToken,
+        profileRepo: repo,
+      }
+    );
+
+    assert.equal(firstSignIn.status, 200);
+    assert.equal(firstSignIn.body.ok, true);
+    assert.equal(firstSignIn.body.isNewProfile, true);
+    assert.ok(firstSignIn.body.profile);
+    assert.equal(firstSignIn.body.profile.auth_provider, 'firebase_google');
+    assert.equal(firstSignIn.body.profile.provider_subject, verifiedUid);
+    assert.equal(firstSignIn.body.profile.verified_email, verifiedEmail);
+    assert.equal(firstSignIn.body.profile.actor_role, ActorRole.Learner);
+    assert.equal(firstSignIn.body.profile.account_status, 'active');
+    assert.equal(repo.profiles.length, 1);
+
+    // Case 2: Existing Google user signs in again without duplicate profile creation
+    const secondSignIn = await processFirebaseClaimRequest(
+      {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid.firebase.jwt' },
+        body: {
+          action: 'provision_profile',
+        },
+      },
+      {
+        verifyIdTokenFn: mockVerifyToken,
+        profileRepo: repo,
+      }
+    );
+
+    assert.equal(secondSignIn.status, 200);
+    assert.equal(secondSignIn.body.ok, true);
+    assert.equal(secondSignIn.body.isNewProfile, false);
+    assert.equal(secondSignIn.body.profile?.id, firstSignIn.body.profile.id);
+    assert.equal(repo.profiles.length, 1);
+
+    // Case 3: Refreshing session and updating profile attributes preserves session & immutable role
+    const profileUpdate = await processFirebaseClaimRequest(
+      {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid.firebase.jwt' },
+        body: {
+          action: 'update_profile',
+          displayName: 'Priya S. Nair',
+          department: 'Electrical & Computer Engineering',
+          officeOrCohort: 'Spring 2026 Graduate Cohort',
+          actorRole: ActorRole.PlatformAdministrator,
+        },
+      },
+      {
+        verifyIdTokenFn: mockVerifyToken,
+        profileRepo: repo,
+      }
+    );
+
+    assert.equal(profileUpdate.status, 200);
+    assert.equal(profileUpdate.body.ok, true);
+    assert.equal(profileUpdate.body.profile?.display_name, 'Priya S. Nair');
+    assert.equal(
+      profileUpdate.body.profile?.department,
+      'Electrical & Computer Engineering'
+    );
+    assert.equal(
+      profileUpdate.body.profile?.actor_role,
+      ActorRole.Learner
+    );
+  });
+
+  it('Google Sign-In Server-Side Provisioning (Cases 4, 7, 8): enforces cross-provider collision guard, blocks unverified/invalid tokens cleanly without exposing SQL/RLS errors, and allows workspace access after provisioning', async () => {
+    const repo = createInMemoryProfileRepo();
+
+    // Pre-register an email/password user
+    await resolveOrCreateAppProfile(
+      {
+        authProvider: 'supabase_email',
+        providerSubject: '99999999-8888-7777-6666-555555555555',
+        email: 'existing.email@university.edu',
+        emailVerified: true,
+        displayName: 'Existing Email User',
+      },
+      repo
+    );
+
+    // Case 7: Cross-provider email collision returns HTTP 409 with clean message
+    const conflictRes = await processFirebaseClaimRequest(
+      {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid.firebase.jwt' },
+        body: { action: 'provision_profile' },
+      },
+      {
+        verifyIdTokenFn: async () => ({
+          uid: 'google_uid_collision_01',
+          email: 'existing.email@university.edu',
+          emailVerified: true,
+          name: 'Collision Attempt',
+          aud: 'campusresolveai',
+          iss: 'https://securetoken.google.com/campusresolveai',
+          verifiedVia: 'google_securetoken_x509',
+        }),
+        profileRepo: repo,
+      }
+    );
+
+    assert.equal(conflictRes.status, 409);
+    assert.equal(conflictRes.body.code, 'CROSS_PROVIDER_EMAIL_CONFLICT');
+    assert.doesNotMatch(conflictRes.body.message, /row-level security/i);
+
+    // Case 8: Invalid / expired token or database error returns clean user-friendly JSON without SQL/RLS internals
+    const invalidTokenRes = await processFirebaseClaimRequest(
+      {
+        method: 'POST',
+        headers: { authorization: 'Bearer forged.jwt.token' },
+      },
+      {
+        verifyIdTokenFn: async () => {
+          throw new Error('Firebase ID token cryptographic signature verification failed.');
+        },
+        profileRepo: repo,
+      }
+    );
+    assert.equal(invalidTokenRes.status, 401);
+    assert.equal(invalidTokenRes.body.code, 'TOKEN_VERIFICATION_FAILED');
+    assert.doesNotMatch(invalidTokenRes.body.message, /row-level security/i);
+
+    // Provision a valid Google user and verify Case 4: Workspace access succeeds for that provisioned profile
+    const validGoogleRes = await processFirebaseClaimRequest(
+      {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid.google.jwt' },
+        body: {
+          action: 'provision_profile',
+          displayName: 'Devon Brooks',
+          department: 'Academic Advising',
+        },
+      },
+      {
+        verifyIdTokenFn: async () => ({
+          uid: 'google_uid_workspace_user',
+          email: 'devon.brooks@university.edu',
+          emailVerified: true,
+          name: 'Devon Brooks',
+          aud: 'campusresolveai',
+          iss: 'https://securetoken.google.com/campusresolveai',
+          verifiedVia: 'google_securetoken_x509',
+        }),
+        profileRepo: repo,
+      }
+    );
+
+    assert.equal(validGoogleRes.status, 200);
+    assert.ok(validGoogleRes.body.profile);
+
+    const provisionedProfile = validGoogleRes.body.profile;
+    const mockQueryChain: any = {
+      select: () => mockQueryChain,
+      eq: () => mockQueryChain,
+      ilike: () => mockQueryChain,
+      order: () => mockQueryChain,
+      limit: () => mockQueryChain,
+      maybeSingle: () =>
+        Promise.resolve({
+          data: {
+            requester_id: 'REQ-USR-GOOGLE01',
+            app_profile_id: provisionedProfile.id,
+            role_id: 'ROLE-LEARNER',
+            primary_term_id: 'TERM-2026-FALL',
+            verified_email: provisionedProfile.verified_email,
+            display_name: provisionedProfile.display_name,
+            department: provisionedProfile.department,
+            program_or_unit: provisionedProfile.office_or_cohort,
+            account_status: 'active',
+            is_synthetic_eval: false,
+          },
+          error: null,
+        }),
+      then: (resolve: any) => resolve({ data: [], error: null, status: 200 }),
+    };
+    const mockWorkspaceClient = {
+      from: () => mockQueryChain,
+    } as any;
+
+    const workspaceBootstrap = await processWorkspaceOperationRequest(
+      'GET',
+      { action: 'bootstrap' },
+      undefined,
+      { authorization: 'Bearer valid.google.jwt' },
+      {
+        profile: {
+          id: provisionedProfile.id,
+          auth_provider: provisionedProfile.auth_provider,
+          provider_subject: provisionedProfile.provider_subject,
+          verified_email: provisionedProfile.verified_email,
+          display_name: provisionedProfile.display_name,
+          department: provisionedProfile.department,
+          office_or_cohort: provisionedProfile.office_or_cohort,
+          actor_role: provisionedProfile.actor_role,
+          account_status: provisionedProfile.account_status,
+        },
+        client: mockWorkspaceClient,
+        serviceRoleClient: null,
+      }
+    );
+
+    assert.equal(workspaceBootstrap.status, 200);
+    assert.equal(workspaceBootstrap.body.ok, true);
+    assert.equal(
+      workspaceBootstrap.body.requester.verified_email,
+      'devon.brooks@university.edu'
+    );
+  });
+
+  it('Cryptographic RS256 Firebase ID Token Verifier: validates authentic RSA-SHA256 signed JWT and rejects tampered payload', async () => {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+
+    const kid = 'test-google-key-id-2026';
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    const headerB64 = Buffer.from(
+      JSON.stringify({ alg: 'RS256', kid, typ: 'JWT' })
+    ).toString('base64url');
+    const payloadB64 = Buffer.from(
+      JSON.stringify({
+        iss: 'https://securetoken.google.com/campusresolveai',
+        aud: 'campusresolveai',
+        sub: 'firebase_crypto_uid_123',
+        email: 'crypto.verified@university.edu',
+        email_verified: true,
+        name: 'Crypto Verified Scholar',
+        iat: nowSec - 30,
+        exp: nowSec + 3600,
+      })
+    ).toString('base64url');
+
+    const signer = crypto.createSign('RSA-SHA256');
+    signer.update(`${headerB64}.${payloadB64}`);
+    signer.end();
+    const signatureB64 = signer.sign(privateKey).toString('base64url');
+
+    const validJwt = `${headerB64}.${payloadB64}.${signatureB64}`;
+
+    const mockCertFetch = (async () =>
+      new Response(JSON.stringify({ [kid]: publicKey }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })) as unknown as typeof fetch;
+
+    const verified = await verifyFirebaseTokenWithGooglePublicCerts(
+      validJwt,
+      'campusresolveai',
+      mockCertFetch
+    );
+
+    assert.equal(verified.uid, 'firebase_crypto_uid_123');
+    assert.equal(verified.email, 'crypto.verified@university.edu');
+    assert.equal(verified.emailVerified, true);
+    assert.equal(verified.verifiedVia, 'google_securetoken_x509');
+
+    // Tamper with the payload and confirm cryptographic verification rejects it
+    const tamperedPayloadB64 = Buffer.from(
+      JSON.stringify({
+        iss: 'https://securetoken.google.com/campusresolveai',
+        aud: 'campusresolveai',
+        sub: 'attacker_uid_999',
+        email: 'attacker@university.edu',
+        email_verified: true,
+        iat: nowSec - 30,
+        exp: nowSec + 3600,
+      })
+    ).toString('base64url');
+    const tamperedJwt = `${headerB64}.${tamperedPayloadB64}.${signatureB64}`;
+
+    await assert.rejects(
+      async () => {
+        await verifyFirebaseTokenWithGooglePublicCerts(
+          tamperedJwt,
+          'campusresolveai',
+          mockCertFetch
+        );
+      },
+      /signature verification failed/i
+    );
+  });
 });
+

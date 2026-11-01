@@ -61,6 +61,7 @@ export const SignInPage: React.FC = () => {
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingEmail || isSubmittingGoogle) return;
     const validation = validateSignInForm(formState);
     setErrors(validation.errors);
     if (!validation.isValid) {
@@ -70,43 +71,49 @@ export const SignInPage: React.FC = () => {
 
     setIsSubmittingEmail(true);
     setAuthFeedback(null);
-    const result = await signInWithEmail(formState.email, formState.password);
-    setIsSubmittingEmail(false);
+    try {
+      const result = await signInWithEmail(formState.email, formState.password);
+      if (result.ok) {
+        navigate(destinationPath, { replace: true });
+        return;
+      }
 
-    if (result.ok) {
-      navigate(destinationPath, { replace: true });
-      return;
+      setAuthFeedback({
+        type: result.requiresEmailVerification ? 'verification' : 'error',
+        title: result.requiresEmailVerification
+          ? 'Email Verification Required'
+          : 'Institutional Sign-In Failed',
+        message: result.message,
+      });
+    } finally {
+      setIsSubmittingEmail(false);
     }
-
-    setAuthFeedback({
-      type: result.requiresEmailVerification ? 'verification' : 'error',
-      title: result.requiresEmailVerification
-        ? 'Email Verification Required'
-        : 'Institutional Sign-In Failed',
-      message: result.message,
-    });
   };
 
   const handleGoogleContinue = async () => {
+    if (isSubmittingGoogle || isSubmittingEmail) return;
     setErrors({});
     setAuthFeedback(null);
     setIsSubmittingGoogle(true);
-    const result = await signInWithGoogle();
-    setIsSubmittingGoogle(false);
+    try {
+      const result = await signInWithGoogle();
+      if (result.ok) {
+        navigate(destinationPath, { replace: true });
+        return;
+      }
 
-    if (result.ok) {
-      navigate(destinationPath, { replace: true });
-      return;
+      setAuthFeedback({
+        type: 'error',
+        title: 'Google Authentication Notice',
+        message: result.message,
+      });
+    } finally {
+      setIsSubmittingGoogle(false);
     }
-
-    setAuthFeedback({
-      type: 'error',
-      title: 'Google Authentication Notice',
-      message: result.message,
-    });
   };
 
   const handleConfirmForgotPassword = async () => {
+    if (isSendingRecovery) return;
     if (!recoveryEmail.trim() || !isValidEmail(recoveryEmail)) {
       setRecoveryError(
         'Enter a valid institutional email address for password reset.'
@@ -115,12 +122,15 @@ export const SignInPage: React.FC = () => {
     }
     setRecoveryError(undefined);
     setIsSendingRecovery(true);
-    const result = await requestPasswordReset(recoveryEmail);
-    setIsSendingRecovery(false);
-    setRecoveryNotice({
-      ok: result.ok,
-      message: result.message,
-    });
+    try {
+      const result = await requestPasswordReset(recoveryEmail);
+      setRecoveryNotice({
+        ok: result.ok,
+        message: result.message,
+      });
+    } finally {
+      setIsSendingRecovery(false);
+    }
   };
 
   return (

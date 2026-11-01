@@ -61,6 +61,7 @@ export const MessagesPage: React.FC = () => {
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (sending) return;
     if (!activeTicketId || replyBody.trim().length < 5) {
       setSendError('Message body must be at least 5 characters.');
       return;
@@ -75,7 +76,7 @@ export const MessagesPage: React.FC = () => {
       });
       setReplyBody('');
       setIsInternalNote(false);
-      await refreshWorkspace();
+      refreshWorkspace().catch(() => {});
     } catch (err) {
       setSendError(
         err instanceof Error ? err.message : 'Failed to post message.'

@@ -16,7 +16,11 @@ import {
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
 import { ViewDataState } from '../../types/domain';
 import { getActorMetadata } from '../../utils/rbac';
-import { ConflictingSourcePair } from '../../services/workflowEngine';
+import {
+  ConflictingSourcePair,
+  DOCUMENTED_ROUTING_RULES,
+} from '../../services/workflowEngine';
+import { OfficialCategoryName } from '../../types/phase3';
 import {
   createOperationalTicket,
   linkPolicyAssistantEscalationTicket,
@@ -148,6 +152,7 @@ export const AIAssistantPage: React.FC = () => {
   const pastLogs = workspaceData?.aiRetrievalLogs || [];
 
   const executePolicyQuery = async (rawQuestion: string) => {
+    if (isQuerying) return;
     const trimmed = rawQuestion.trim();
     if (!trimmed || trimmed.length < 5) {
       setQueryError(
@@ -198,7 +203,7 @@ export const AIAssistantPage: React.FC = () => {
         expiredSourcesExcludedDetails: res.expiredSourcesExcludedDetails,
         feedbackHelpful: res.retrievalLog.feedback_helpful,
       });
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
     } catch (err) {
       setQueryError(
         err instanceof Error
@@ -223,23 +228,26 @@ export const AIAssistantPage: React.FC = () => {
         helpful,
       });
       setActiveResult({ ...activeResult, feedbackHelpful: helpful });
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
     } catch {
       // Non-blocking feedback update
     }
   };
 
   const handleEscalateToTicket = async () => {
-    if (!activeResult) return;
+    if (!activeResult || escalatingTicket || Boolean(activeResult.escalatedTicketId)) return;
     setEscalatingTicket(true);
     try {
-      const category = activeResult.detectedCategory || 'Registration';
+      const category = (activeResult.detectedCategory || 'Registration') as OfficialCategoryName;
+      const targetDept =
+        activeResult.recommendedEscalationTeam ||
+        DOCUMENTED_ROUTING_RULES[category]?.escalation_assigned_team ||
+        'Academic Administration Review Office';
+
       const created = await createOperationalTicket({
         subject: `Escalated Policy Inquiry (${activeResult.queryId}): ${activeResult.userQuery.slice(0, 60)}`,
         category,
-        departmentTarget:
-          activeResult.recommendedEscalationTeam ||
-          'Academic Administration Review Office',
+        departmentTarget: targetDept,
         urgencyLevel: 'Administrative Escalation Priority',
         courseOrPolicyCode:
           activeResult.citedSources[0]?.id || 'HUMAN-ESCALATION',
@@ -247,6 +255,7 @@ export const AIAssistantPage: React.FC = () => {
           activeResult.escalationReason ||
           'Requested human policy verification.'
         }`,
+        idempotencyKey: `escalate_policy_${activeResult.queryId}`,
       });
 
       if (created.ticket?.ticket_id) {
@@ -267,7 +276,7 @@ export const AIAssistantPage: React.FC = () => {
       setEscalatedBanner(
         `Created escalated ticket ${created.ticket.ticket_id} assigned to ${created.assignment.assigned_team} (${created.assignment.routing_rule_id}).`
       );
-      await refreshWorkspaceData();
+      refreshWorkspaceData().catch(() => {});
     } catch (err) {
       setEscalatedBanner(
         err instanceof Error
@@ -281,13 +290,18 @@ export const AIAssistantPage: React.FC = () => {
 
   const handleOpenPrefilledRequestForm = () => {
     if (!activeResult) return;
-    const category = activeResult.detectedCategory || 'Registration';
+    const category = (activeResult.detectedCategory || 'Registration') as OfficialCategoryName;
+    const targetDept =
+      activeResult.recommendedEscalationTeam ||
+      DOCUMENTED_ROUTING_RULES[category]?.escalation_assigned_team ||
+      'Academic Administration Review Office';
+
     navigate('/workspace/create-request', {
       state: {
         prefill: {
           subject: `Policy Review Request (${activeResult.queryId}): ${activeResult.userQuery.slice(0, 55)}`,
           category,
-          departmentTarget: 'Academic Administration Review Office',
+          departmentTarget: targetDept,
           urgencyLevel: 'Administrative Escalation Priority',
           courseOrPolicyCode:
             activeResult.citedSources[0]?.id || 'HUMAN-ESCALATION',
