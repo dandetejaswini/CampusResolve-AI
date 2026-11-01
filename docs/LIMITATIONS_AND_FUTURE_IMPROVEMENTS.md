@@ -26,7 +26,7 @@
 - Expanded policy document corpus from 12 to 24 distinct documents covering all 4 categories, multiple version iterations, and conflicting policy cases.
 - Implemented realistic, non-uniform category and lifecycle distributions across 5,000 tickets and 20,000 messages.
 - Added comprehensive data quality metrics tracking text diversity, Hinglish phrasing, typos, and multi-issue coverage.
-- Created standalone `DATA_DICTIONARY.md` and 2–3 minute video demo plan `docs/DEMO_VIDEO_SCRIPT.md`.
+- Created standalone `docs/DATA_DICTIONARY.md` and 2–3 minute video demo plan `docs/DEMO_VIDEO_SCRIPT.md`.
 - Maintained 100% fixed-seed SHA-256 reproducibility (`7840a95b7c...`).
 
 ---

@@ -14,7 +14,7 @@ This document details transparent artificial intelligence tool usage, major deve
 - **Developer Review & Validation:** Inspected cryptographic RSA-SHA256 signature verification against Google's official X.509 SecureToken certificates (`securetoken@system.gserviceaccount.com`). Verified that unauthenticated client inserts into `app_profiles` are blocked by RLS.
 
 ### Phase 3 & 4: Database Design & Synthetic Dataset Generation
-- **AI Contribution:** Generated the 11-table relational schema (`supabase/migrations/20261030000002_phase3_complete_domain_and_workflow.sql`), data dictionary (`DATA_DICTIONARY_AND_ARCHITECTURE.md`), and the deterministic dataset generator (`scripts/generate-and-verify-phase3.ts`).
+- **AI Contribution:** Generated the 11-table relational schema (`supabase/migrations/20261030000002_phase3_complete_domain_and_workflow.sql`), data dictionary (`docs/DATA_DICTIONARY_AND_ARCHITECTURE.md`), and the deterministic dataset generator (`scripts/generate-and-verify-phase3.ts`).
 - **Developer Review & Validation:** Executed fixed-seed reproducibility verification across multiple test runs to ensure identical cryptographic SHA-256 hashes (`40f38c72...`) across all entities. Verified exact dataset row counts (`tickets.csv`: 5,000 rows, `knowledge_articles.csv`: 200 rows, `messages.csv`: 20,000 rows).
 
 ### Phase 5 & 6: Workflow Engine, SLA Calculation & RAG Policy Assistant
