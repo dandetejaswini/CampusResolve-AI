@@ -4,81 +4,83 @@
     "category_name": "Financial Aid",
     "domain_code": "FINAID",
     "default_assigned_team": "Office of Financial Aid & Scholarships",
+    "primary_assigned_team": "Office of Financial Aid & Scholarships",
     "escalation_team": "Financial Aid Appeals & Compliance Review Committee",
+    "escalation_assigned_team": "Financial Aid Appeals & Compliance Review Committee",
     "routing_rule_id": "RULE-FINAID-001",
+    "default_actor_role": "support_staff",
+    "escalation_actor_role": "academic_administrator",
     "description": "Routes Financial Aid disbursement, SAP appeal, scholarship eligibility, and emergency aid inquiries to the Office of Financial Aid & Scholarships; escalates appeals and policy exceptions to the Financial Aid Appeals & Compliance Review Committee.",
     "keywords": [
-      "fafsa",
-      "sap",
-      "appeal",
-      "disbursement",
-      "scholarship",
-      "grant"
+      "academic",
+      "financial aid"
     ],
     "is_active": true,
-    "effective_from": "2025-08-01",
+    "effective_from": "2026-01-01T00:00:00+05:30",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
     "category_id": "CAT-REG",
     "category_name": "Registration",
     "domain_code": "REG",
     "default_assigned_team": "Office of the University Registrar",
+    "primary_assigned_team": "Office of the University Registrar",
     "escalation_team": "Academic Senate Registration Review Board",
+    "escalation_assigned_team": "Academic Senate Registration Review Board",
     "routing_rule_id": "RULE-REG-001",
+    "default_actor_role": "support_staff",
+    "escalation_actor_role": "academic_administrator",
     "description": "Routes course enrollment, add/drop deadlines, late withdrawal petitions, credit overload, and degree audit requests to the Office of the University Registrar; escalates retroactive petitions to the Academic Senate Registration Review Board.",
     "keywords": [
-      "add/drop",
-      "withdrawal",
-      "overload",
-      "prerequisite",
-      "enrollment"
+      "academic",
+      "registration"
     ],
     "is_active": true,
-    "effective_from": "2025-08-01",
+    "effective_from": "2026-01-01T00:00:00+05:30",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
     "category_id": "CAT-IT",
     "category_name": "IT",
     "domain_code": "IT",
     "default_assigned_team": "Campus IT Operations & Identity Desk",
+    "primary_assigned_team": "Campus IT Operations & Identity Desk",
     "escalation_team": "Information Security & Infrastructure Escalation Unit",
+    "escalation_assigned_team": "Information Security & Infrastructure Escalation Unit",
     "routing_rule_id": "RULE-IT-001",
+    "default_actor_role": "support_staff",
+    "escalation_actor_role": "platform_administrator",
     "description": "Routes SSO authentication, MFA reset, LMS access, institutional email provisioning, and lab software licensing requests to the Campus IT Operations & Identity Desk; escalates security or multi-system outages to Information Security & Infrastructure Escalation Unit.",
     "keywords": [
-      "mfa",
-      "sso",
-      "lms",
-      "password",
-      "authenticator",
-      "license"
+      "academic",
+      "it"
     ],
     "is_active": true,
-    "effective_from": "2025-08-01",
+    "effective_from": "2026-01-01T00:00:00+05:30",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
     "category_id": "CAT-ACCESS",
     "category_name": "Accessibility",
     "domain_code": "ACCESS",
     "default_assigned_team": "Disability & Accessibility Services Office",
+    "primary_assigned_team": "Disability & Accessibility Services Office",
     "escalation_team": "ADA / Section 504 Compliance Review Panel",
+    "escalation_assigned_team": "ADA / Section 504 Compliance Review Panel",
     "routing_rule_id": "RULE-ACCESS-001",
+    "default_actor_role": "support_staff",
+    "escalation_actor_role": "academic_administrator",
     "description": "Routes exam accommodation letters, assistive technology requests, captioning, and physical classroom access adjustments to the Disability & Accessibility Services Office; escalates accommodation disputes or urgent compliance barriers to the ADA / Section 504 Compliance Review Panel.",
     "keywords": [
-      "accommodation",
-      "testing",
-      "captioning",
-      "assistive",
-      "section 504"
+      "academic",
+      "accessibility"
     ],
     "is_active": true,
-    "effective_from": "2025-08-01",
+    "effective_from": "2026-01-01T00:00:00+05:30",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   }
 ]

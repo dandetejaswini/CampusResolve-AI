@@ -13,7 +13,7 @@
     "can_approve_escalations": false,
     "effective_from": "2025-08-01",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
     "role_id": "ROLE-INSTRUCTOR",
@@ -30,7 +30,7 @@
     "can_approve_escalations": false,
     "effective_from": "2025-08-01",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
     "role_id": "ROLE-SUPPORT_STAFF",
@@ -48,14 +48,14 @@
     "can_approve_escalations": false,
     "effective_from": "2025-08-01",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
-    "role_id": "ROLE-ACADEMIC_ADMIN",
+    "role_id": "ROLE-ACADEMIC_ADMINISTRATOR",
     "role_code": "academic_administrator",
     "role_name": "Academic Administrator",
-    "institutional_scope": "Academic Governance & Escalation Review Boards",
-    "description": "Adjudicates escalated requests, approves policy exceptions, and publishes authoritative policy documents.",
+    "institutional_scope": "Deans, Registrars & Appeals Review Boards",
+    "description": "Adjudicates escalated petitions, reviews policy compliance, publishes knowledge articles, and oversees SLAs.",
     "allowed_actions": [
       "initiate_administrative_review",
       "approve_policy_escalation",
@@ -67,14 +67,14 @@
     "can_approve_escalations": true,
     "effective_from": "2025-08-01",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   },
   {
-    "role_id": "ROLE-PLATFORM_ADMIN",
+    "role_id": "ROLE-PLATFORM_ADMINISTRATOR",
     "role_code": "platform_administrator",
     "role_name": "Platform Administrator",
-    "institutional_scope": "Enterprise Workflow, Routing & SLA Governance",
-    "description": "Configures routing rules, SLA schedules, and platform security governance.",
+    "institutional_scope": "Enterprise IT & Platform Governance Authority",
+    "description": "Configures cross-institutional settings, manages authentication providers, and reviews system integrity metrics.",
     "allowed_actions": [
       "initiate_administrative_review",
       "publish_knowledge_article",
@@ -86,6 +86,6 @@
     "can_approve_escalations": true,
     "effective_from": "2025-08-01",
     "effective_to": null,
-    "created_at": "2026-09-01T08:00:00.000Z"
+    "created_at": "2026-09-01T13:30:00+05:30"
   }
 ]

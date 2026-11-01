@@ -1,12 +1,12 @@
 {
   "seed": 20261022,
   "mode": "full",
-  "generatedAtAnchor": "2026-09-01T08:00:00.000Z",
+  "generatedAtAnchor": "2026-09-01T13:30:00+05:30",
   "totalTicketsEvaluated": 5000,
   "overallMetrics": {
     "precision": 1,
-    "recall": 1,
-    "f1Score": 1,
+    "recall": 0.983,
+    "f1Score": 0.9914,
     "routingComplianceRateOnNormalTickets": 1,
     "policyApplicabilityRateOnNormalTickets": 1,
     "slaBusinessHourReproducibilityRate": 1,
@@ -31,17 +31,17 @@
     {
       "metricId": "METRIC-02-ASSIGNMENT-AUTHORIZATION-ACCURACY",
       "metricName": "Assignment Authorization Accuracy",
-      "numerator": 5000,
-      "denominator": 5000,
+      "numerator": 5399,
+      "denominator": 5399,
       "rate": 1,
       "percentage": 100,
-      "rawOperationalNumerator": 4800,
-      "rawOperationalDenominator": 5000,
-      "rawOperationalRate": 0.96,
-      "evaluationPopulation": "5,000 assignment records (Role authorization can_be_assigned_tickets=true: 5000/5000; Category-team authorization on raw records: 4800/5000)",
+      "rawOperationalNumerator": 5216,
+      "rawOperationalDenominator": 5399,
+      "rawOperationalRate": 0.9661,
+      "evaluationPopulation": "5,399 assignment records (Role authorization can_be_assigned_tickets=true: 5399/5399; Category-team authorization on raw records: 5216/5399)",
       "evaluationMode": "deterministic_rule_based",
       "passed": true,
-      "explanation": "100% (5000/5000) of assignments are held by authorized staff/admin roles (0 learner/instructor assignments). Raw category-team authorization is 4800/5000 (96.00%) with 100% of Scenario 2 unauthorized team routings detected."
+      "explanation": "100% (5399/5399) of assignments are held by authorized staff/admin roles (0 learner/instructor assignments). Raw category-team authorization is 5216/5399 (96.00%) with 100% of Scenario 2 unauthorized team routings detected."
     },
     {
       "metricId": "METRIC-03-POLICY-RETRIEVAL-PRECISION-RECALL",
@@ -50,13 +50,13 @@
       "denominator": 5000,
       "rate": 1,
       "percentage": 100,
-      "rawOperationalNumerator": 8,
-      "rawOperationalDenominator": 8,
+      "rawOperationalNumerator": 20,
+      "rawOperationalDenominator": 20,
       "rawOperationalRate": 1,
-      "evaluationPopulation": "5,000 ticket policy/article retrieval evaluations (Active policy & article match: 5000/5000; Corpus top-1 precision/recall: 8/8 active policies; 100% of expired v1.0 policies excluded)",
+      "evaluationPopulation": "5,000 ticket policy/article retrieval evaluations (Active policy & article match: 5000/5000; Corpus top-1 precision/recall: 20/20 active policies; 100% of expired v1.0 policies excluded)",
       "evaluationMode": "hybrid_rule_and_rag",
       "passed": true,
-      "explanation": "retrieveApplicablePolicyEvidence() achieves 5000/5000 (100.00%) ticket-level active policy & article precision/recall and 8/8 (100.00%) top-1 corpus recall across all active policies while excluding 100% of expired v1.0 policies."
+      "explanation": "retrieveApplicablePolicyEvidence() achieves 5000/5000 (100.00%) ticket-level active policy & article precision/recall and 20/20 (100.00%) top-1 corpus recall across all active policies while excluding 100% of expired v1.0 policies."
     },
     {
       "metricId": "METRIC-04-CITATION-VALIDITY-RATE",
@@ -106,17 +106,17 @@
     {
       "metricId": "METRIC-07-ANOMALY-DETECTION-PRECISION-RECALL-F1",
       "metricName": "Anomaly Detection Precision, Recall & F1",
-      "numerator": 1000,
+      "numerator": 983,
       "denominator": 1000,
-      "rate": 1,
-      "percentage": 100,
-      "rawOperationalNumerator": 1000,
-      "rawOperationalDenominator": 1000,
+      "rate": 0.9914,
+      "percentage": 99.14,
+      "rawOperationalNumerator": 983,
+      "rawOperationalDenominator": 983,
       "rawOperationalRate": 1,
-      "evaluationPopulation": "1,000 ground-truth anomalies across 5 scenarios in 5,000 evaluated tickets (TP=1000, FP=0, FN=0)",
+      "evaluationPopulation": "1,000 ground-truth anomalies across 5 scenarios in 5,000 evaluated tickets (TP=983, FP=0, FN=17)",
       "evaluationMode": "deterministic_rule_based",
-      "passed": true,
-      "explanation": "Precision = 1000/1000 (100.00%), Recall = 1000/1000 (100.00%), F1 = 1.0000 across all 5 challenge anomaly scenarios evaluated strictly without ground-truth input leakage."
+      "passed": false,
+      "explanation": "Precision = 983/983 (100.00%), Recall = 983/1000 (98.30%), F1 = 0.9914 across all 5 challenge anomaly scenarios evaluated strictly without ground-truth input leakage."
     },
     {
       "metricId": "METRIC-08-SLA-CALCULATION-ACCURACY",
@@ -136,47 +136,47 @@
     {
       "metricId": "METRIC-09-ESCALATION-DETECTION-RATE",
       "metricName": "Escalation Detection Rate",
-      "numerator": 700,
-      "denominator": 700,
+      "numerator": 599,
+      "denominator": 599,
       "rate": 1,
       "percentage": 100,
       "rawOperationalNumerator": 4800,
       "rawOperationalDenominator": 5000,
       "rawOperationalRate": 0.96,
-      "evaluationPopulation": "700 escalation-required tickets out of 5,000 total tickets (Engine escalation detection: 700/700; Raw operational escalation compliance: 4800/5000)",
+      "evaluationPopulation": "599 escalation-required tickets out of 5,000 total tickets (Engine escalation detection: 599/599; Raw operational escalation compliance: 4800/5000)",
       "evaluationMode": "deterministic_rule_based",
       "passed": true,
-      "explanation": "Routing & escalation engine identifies 700/700 (100.00%) mandatory escalation cases and detects all 200 Scenario 5 missed escalations (4800/5000 = 96.00% raw operational compliance)."
+      "explanation": "Routing & escalation engine identifies 599/599 (100.00%) mandatory escalation cases and detects all 200 Scenario 5 missed escalations (4800/5000 = 96.00% raw operational compliance)."
     },
     {
       "metricId": "METRIC-10-LIFECYCLE-VALIDATION-PASS-RATE",
       "metricName": "Lifecycle Validation Pass Rate",
-      "numerator": 14000,
-      "denominator": 14000,
+      "numerator": 12901,
+      "denominator": 12901,
       "rate": 1,
       "percentage": 100,
-      "rawOperationalNumerator": 4800,
+      "rawOperationalNumerator": 5000,
       "rawOperationalDenominator": 5000,
-      "rawOperationalRate": 0.96,
-      "evaluationPopulation": "14,000 ticket_lifecycle_events across 5,000 tickets (State transition validity: 14000/14000; Terminal state match with ground truth: 4800/5000)",
+      "rawOperationalRate": 1,
+      "evaluationPopulation": "12,901 ticket_lifecycle_events across 5,000 tickets (State transition validity: 12901/12901; Terminal state match with ground truth: 5000/5000)",
       "evaluationMode": "deterministic_rule_based",
       "passed": true,
-      "explanation": "14000/14000 (100.00%) recorded state transitions obey ALLOWED_LIFECYCLE_TRANSITIONS. 4800/5000 (96.00%) raw tickets match expected terminal state (200 are Scenario 5 un-escalated resolutions)."
+      "explanation": "12901/12901 (100.00%) recorded state transitions obey ALLOWED_LIFECYCLE_TRANSITIONS. 5000/5000 (96.00%) raw tickets match expected terminal state (0 are Scenario 5 un-escalated resolutions)."
     },
     {
       "metricId": "METRIC-11-REFERENTIAL-INTEGRITY-PASS-RATE",
       "metricName": "Referential Integrity Pass Rate",
-      "numerator": 64412,
-      "denominator": 64412,
+      "numerator": 62157,
+      "denominator": 62157,
       "rate": 1,
       "percentage": 100,
-      "rawOperationalNumerator": 64412,
-      "rawOperationalDenominator": 64412,
+      "rawOperationalNumerator": 62157,
+      "rawOperationalDenominator": 62157,
       "rawOperationalRate": 1,
-      "evaluationPopulation": "64,412 foreign-key references across all 11 core entities and 3 bridge tables",
+      "evaluationPopulation": "62,157 foreign-key references across all 11 core entities and 3 bridge tables",
       "evaluationMode": "deterministic_rule_based",
       "passed": true,
-      "explanation": "100.00% (64,412/64,412) of parent-child and bridge table foreign-key references resolve to valid primary keys with 0 orphaned records."
+      "explanation": "100.00% (62,157/62,157) of parent-child and bridge table foreign-key references resolve to valid primary keys with 0 orphaned records."
     }
   ],
   "workflowStageEvaluations": [
@@ -232,17 +232,17 @@
       "stageNumber": 4,
       "stageCode": "assignment_authorization",
       "stageName": "4. Assignment Role & Team Authorization",
-      "evaluatedPopulationCount": 5000,
-      "operationalCompliantCount": 4800,
-      "operationalComplianceRate": 0.96,
-      "engineHandledOrDetectedCount": 5000,
+      "evaluatedPopulationCount": 5399,
+      "operationalCompliantCount": 5216,
+      "operationalComplianceRate": 0.9661,
+      "engineHandledOrDetectedCount": 5399,
       "engineHandlingAccuracy": 1,
       "normalScenarioPass": true,
       "boundaryScenarioPass": true,
       "failureOrAnomalyScenarioPass": true,
       "exceptionEscalationPass": true,
       "historicalTraceabilityPass": true,
-      "summaryExplanation": "5000/5000 assignments held by authorized staff/admin roles; all 200 Scenario 2 unauthorized team assignments detected."
+      "summaryExplanation": "5399/5399 assignments held by authorized staff/admin roles; all 183 Scenario 2 unauthorized team assignments detected."
     },
     {
       "stageNumber": 5,
@@ -338,39 +338,39 @@
       "failureOrAnomalyScenarioPass": true,
       "exceptionEscalationPass": true,
       "historicalTraceabilityPass": true,
-      "summaryExplanation": "Identified 700/700 (100%) mandatory escalation petitions and flagged all 200 Scenario 5 missed escalations."
+      "summaryExplanation": "Identified 599/599 (100%) mandatory escalation petitions and flagged all 200 Scenario 5 missed escalations."
     },
     {
       "stageNumber": 11,
       "stageCode": "resolution",
       "stageName": "11. Policy-Grounded Resolution & State Transitions",
-      "evaluatedPopulationCount": 4000,
-      "operationalCompliantCount": 3800,
-      "operationalComplianceRate": 0.95,
-      "engineHandledOrDetectedCount": 4000,
+      "evaluatedPopulationCount": 2667,
+      "operationalCompliantCount": 2467,
+      "operationalComplianceRate": 0.925,
+      "engineHandledOrDetectedCount": 2667,
       "engineHandlingAccuracy": 1,
       "normalScenarioPass": true,
       "boundaryScenarioPass": true,
       "failureOrAnomalyScenarioPass": true,
       "exceptionEscalationPass": true,
       "historicalTraceabilityPass": true,
-      "summaryExplanation": "All 4,000 resolved tickets record non-empty resolution_summary, resolved_at, policy citations, and valid lifecycle transition history."
+      "summaryExplanation": "All 2,667 resolved tickets record non-empty resolution_summary, resolved_at, policy citations, and valid lifecycle transition history."
     },
     {
       "stageNumber": 12,
       "stageCode": "feedback_recording",
       "stageName": "12. Requester Resolution Feedback Recording",
-      "evaluatedPopulationCount": 4000,
-      "operationalCompliantCount": 4000,
+      "evaluatedPopulationCount": 2667,
+      "operationalCompliantCount": 2667,
       "operationalComplianceRate": 1,
-      "engineHandledOrDetectedCount": 4000,
+      "engineHandledOrDetectedCount": 2667,
       "engineHandlingAccuracy": 1,
       "normalScenarioPass": true,
       "boundaryScenarioPass": true,
       "failureOrAnomalyScenarioPass": true,
       "exceptionEscalationPass": true,
       "historicalTraceabilityPass": true,
-      "summaryExplanation": "100% (4,000/4,000) of resolved tickets have linked FDB-<ticket-id> requester feedback records."
+      "summaryExplanation": "100% (2,667/2,667) of resolved and closed tickets have linked FDB-<ticket-id> requester feedback records."
     }
   ]
 }

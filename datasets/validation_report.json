@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-01T08:00:00.000Z",
+  "generatedAt": "2026-09-01T13:30:00+05:30",
   "seed": 20261022,
   "mode": "full",
   "overallStructuralPass": true,
@@ -10,24 +10,24 @@
       "checkName": "Primary-Key Uniqueness & Exact ID Format Compliance",
       "passed": true,
       "structuralIntegrityValid": true,
-      "totalInspected": 39725,
+      "totalInspected": 38803,
       "violationCount": 0,
       "detectedIntentionalAnomalyCount": 0,
       "sampleFindings": [],
       "structuredFailures": [],
-      "details": "Verified 39725 primary keys across all 11 core entities against exact regex formats (TKT-2026-000001, MSG-<ticket-id>-001, KB-000001, POL-<domain>-2026-001, SLA-<ticket-id>, ASG-<ticket-id>-01, FDB-<ticket-id>, REQ-2026-000001)."
+      "details": "Verified 38803 primary keys across all 11 core entities against exact regex formats (TKT-2026-000001, MSG-<ticket-id>-001, KB-000001, POL-<domain>-2026-001, SLA-<ticket-id>, ASG-<ticket-id>-01, FDB-<ticket-id>, REQ-2026-000001)."
     },
     {
       "checkId": "VAL-02-FK-INTEGRITY",
       "checkName": "Foreign-Key Referential Integrity",
       "passed": true,
       "structuralIntegrityValid": true,
-      "totalInspected": 64412,
+      "totalInspected": 62157,
       "violationCount": 0,
       "detectedIntentionalAnomalyCount": 0,
       "sampleFindings": [],
       "structuredFailures": [],
-      "details": "Verified 64412 foreign-key references across all parent-child relationships with 0 broken links."
+      "details": "Verified 62157 foreign-key references across all parent-child relationships with 0 broken links."
     },
     {
       "checkId": "VAL-03-ENUM-VALIDITY",
@@ -58,14 +58,14 @@
       "checkName": "Policy Effective-Date Consistency & Expired Citation Detection",
       "passed": true,
       "structuralIntegrityValid": true,
-      "totalInspected": 5012,
+      "totalInspected": 5024,
       "violationCount": 0,
       "detectedIntentionalAnomalyCount": 200,
       "sampleFindings": [
-        "Ticket TKT-2026-000003 (submitted 2026-09-03) cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)",
-        "Ticket TKT-2026-000028 (submitted 2026-09-28) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
-        "Ticket TKT-2026-000053 (submitted 2026-09-25) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
-        "Ticket TKT-2026-000078 (submitted 2026-09-22) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
+        "Ticket TKT-2026-000003 (submitted 2026-10-19) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
+        "Ticket TKT-2026-000028 (submitted 2026-08-31) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
+        "Ticket TKT-2026-000053 (submitted 2026-11-02) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)",
+        "Ticket TKT-2026-000078 (submitted 2026-09-14) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
       ],
       "structuredFailures": [],
       "structuredAnomalyFindingsSample": [
@@ -73,61 +73,61 @@
           "entity": "Ticket",
           "recordId": "TKT-2026-000003",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000003 (submitted 2026-09-03) cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)"
+          "reason": "Ticket TKT-2026-000003 (submitted 2026-10-19) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000028",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000028 (submitted 2026-09-28) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)"
+          "reason": "Ticket TKT-2026-000028 (submitted 2026-08-31) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000053",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000053 (submitted 2026-09-25) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)"
+          "reason": "Ticket TKT-2026-000053 (submitted 2026-11-02) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000078",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000078 (submitted 2026-09-22) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
+          "reason": "Ticket TKT-2026-000078 (submitted 2026-09-14) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000103",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000103 (submitted 2026-09-19) cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)"
+          "reason": "Ticket TKT-2026-000103 (submitted 2026-11-16) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000128",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000128 (submitted 2026-09-16) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)"
+          "reason": "Ticket TKT-2026-000128 (submitted 2026-09-28) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000153",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000153 (submitted 2026-09-13) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)"
+          "reason": "Ticket TKT-2026-000153 (submitted 2026-11-30) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000178",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000178 (submitted 2026-09-10) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
+          "reason": "Ticket TKT-2026-000178 (submitted 2026-10-12) cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000203",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000203 (submitted 2026-09-07) cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)"
+          "reason": "Ticket TKT-2026-000203 (submitted 2026-08-24) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)"
         },
         {
           "entity": "Ticket",
           "recordId": "TKT-2026-000228",
           "field": "referenced_policy_id",
-          "reason": "Ticket TKT-2026-000228 (submitted 2026-09-04) cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)"
+          "reason": "Ticket TKT-2026-000228 (submitted 2026-10-26) cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)"
         }
       ],
       "details": "0 structural date inversions; flagged 200 benchmark tickets citing expired policy versions (Anomaly Scenario 1: expired_policy_citation) without silent repair."
@@ -142,14 +142,14 @@
       "detectedIntentionalAnomalyCount": 0,
       "sampleFindings": [],
       "structuredFailures": [],
-      "details": "Reconciled tickets (5000), messages (20000), SLAs (5000), assignments (5000), and resolved feedbacks (4000)."
+      "details": "Reconciled tickets (5000), messages (20000), SLAs (5000), assignments (5399), and resolved feedbacks (2667)."
     },
     {
       "checkId": "VAL-07-LIFECYCLE-TRANSITIONS",
       "checkName": "Lifecycle State Machine & Mandatory Escalation Verification",
       "passed": true,
       "structuralIntegrityValid": true,
-      "totalInspected": 19000,
+      "totalInspected": 17901,
       "violationCount": 0,
       "detectedIntentionalAnomalyCount": 200,
       "sampleFindings": [
@@ -221,7 +221,7 @@
           "reason": "Ticket TKT-2026-000244 requires_escalation=true but lifecycle_status='resolved' and is_escalated=false"
         }
       ],
-      "details": "All 14000 state events follow documented transitions; flagged 200 tickets where required escalation was not triggered (Anomaly Scenario 5)."
+      "details": "All 12901 state events follow documented transitions; flagged 200 tickets where required escalation was not triggered (Anomaly Scenario 5)."
     },
     {
       "checkId": "VAL-08-DUPLICATE-DETECTION",
@@ -240,14 +240,14 @@
       "checkName": "Routing Rule Authorization & Team Assignment Validity",
       "passed": true,
       "structuralIntegrityValid": true,
-      "totalInspected": 5000,
+      "totalInspected": 5399,
       "violationCount": 0,
-      "detectedIntentionalAnomalyCount": 200,
+      "detectedIntentionalAnomalyCount": 183,
       "sampleFindings": [
-        "Assignment ASG-TKT-2026-000007-01 routed 'IT' ticket TKT-2026-000007 to unauthorized team 'Office of Financial Aid & Scholarships'",
-        "Assignment ASG-TKT-2026-000032-01 routed 'Accessibility' ticket TKT-2026-000032 to unauthorized team 'Office of Financial Aid & Scholarships'",
-        "Assignment ASG-TKT-2026-000057-01 routed 'Financial Aid' ticket TKT-2026-000057 to unauthorized team 'Campus IT Operations & Identity Desk'",
-        "Assignment ASG-TKT-2026-000082-01 routed 'Registration' ticket TKT-2026-000082 to unauthorized team 'Office of Financial Aid & Scholarships'"
+        "Assignment ASG-TKT-2026-000007-01 routed 'Registration' ticket TKT-2026-000007 to unauthorized team 'Office of Financial Aid & Scholarships'",
+        "Assignment ASG-TKT-2026-000032-01 routed 'Registration' ticket TKT-2026-000032 to unauthorized team 'Office of Financial Aid & Scholarships'",
+        "Assignment ASG-TKT-2026-000057-01 routed 'IT' ticket TKT-2026-000057 to unauthorized team 'Office of Financial Aid & Scholarships'",
+        "Assignment ASG-TKT-2026-000082-01 routed 'Financial Aid' ticket TKT-2026-000082 to unauthorized team 'Campus IT Operations & Identity Desk'"
       ],
       "structuredFailures": [],
       "structuredAnomalyFindingsSample": [
@@ -255,64 +255,64 @@
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000007-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000007-01 routed 'IT' ticket TKT-2026-000007 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000007-01 routed 'Registration' ticket TKT-2026-000007 to unauthorized team 'Office of Financial Aid & Scholarships'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000032-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000032-01 routed 'Accessibility' ticket TKT-2026-000032 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000032-01 routed 'Registration' ticket TKT-2026-000032 to unauthorized team 'Office of Financial Aid & Scholarships'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000057-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000057-01 routed 'Financial Aid' ticket TKT-2026-000057 to unauthorized team 'Campus IT Operations & Identity Desk'"
+          "reason": "Assignment ASG-TKT-2026-000057-01 routed 'IT' ticket TKT-2026-000057 to unauthorized team 'Office of Financial Aid & Scholarships'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000082-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000082-01 routed 'Registration' ticket TKT-2026-000082 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000082-01 routed 'Financial Aid' ticket TKT-2026-000082 to unauthorized team 'Campus IT Operations & Identity Desk'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000107-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000107-01 routed 'IT' ticket TKT-2026-000107 to unauthorized team 'Office of Financial Aid & Scholarships'"
-        },
-        {
-          "entity": "Assignment",
-          "recordId": "ASG-TKT-2026-000132-01",
-          "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000132-01 routed 'Accessibility' ticket TKT-2026-000132 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000107-01 routed 'Registration' ticket TKT-2026-000107 to unauthorized team 'Office of Financial Aid & Scholarships'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000157-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000157-01 routed 'Financial Aid' ticket TKT-2026-000157 to unauthorized team 'Campus IT Operations & Identity Desk'"
+          "reason": "Assignment ASG-TKT-2026-000157-01 routed 'IT' ticket TKT-2026-000157 to unauthorized team 'Office of Financial Aid & Scholarships'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000182-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000182-01 routed 'Registration' ticket TKT-2026-000182 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000182-01 routed 'Financial Aid' ticket TKT-2026-000182 to unauthorized team 'Campus IT Operations & Identity Desk'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000207-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000207-01 routed 'IT' ticket TKT-2026-000207 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000207-01 routed 'Registration' ticket TKT-2026-000207 to unauthorized team 'Office of Financial Aid & Scholarships'"
         },
         {
           "entity": "Assignment",
           "recordId": "ASG-TKT-2026-000232-01",
           "field": "assigned_team",
-          "reason": "Assignment ASG-TKT-2026-000232-01 routed 'Accessibility' ticket TKT-2026-000232 to unauthorized team 'Office of Financial Aid & Scholarships'"
+          "reason": "Assignment ASG-TKT-2026-000232-01 routed 'Registration' ticket TKT-2026-000232 to unauthorized team 'Office of Financial Aid & Scholarships'"
+        },
+        {
+          "entity": "Assignment",
+          "recordId": "ASG-TKT-2026-000257-01",
+          "field": "assigned_team",
+          "reason": "Assignment ASG-TKT-2026-000257-01 routed 'IT' ticket TKT-2026-000257 to unauthorized team 'Office of Financial Aid & Scholarships'"
         }
       ],
-      "details": "Inspected 5000 assignments against role permissions and DOCUMENTED_ROUTING_RULES; 0 structural role/sync violations; flagged 200 unauthorized team routing records (Anomaly Scenario 2)."
+      "details": "Inspected 5399 assignments against role permissions and DOCUMENTED_ROUTING_RULES; 0 structural role/sync violations; flagged 183 unauthorized team routing records (Anomaly Scenario 2)."
     },
     {
       "checkId": "VAL-10-POLICY-VERSION-AND-GROUNDING",
@@ -324,9 +324,9 @@
       "detectedIntentionalAnomalyCount": 200,
       "sampleFindings": [
         "Message MSG-TKT-2026-000011-003 on ticket TKT-2026-000011 contains ungrounded factual claim absent from cited policy POL-IT-2026-002",
-        "Message MSG-TKT-2026-000036-003 on ticket TKT-2026-000036 contains ungrounded factual claim absent from cited policy POL-ACCESS-2026-003",
+        "Message MSG-TKT-2026-000036-003 on ticket TKT-2026-000036 contains ungrounded factual claim absent from cited policy POL-FINAID-2026-002",
         "Message MSG-TKT-2026-000061-003 on ticket TKT-2026-000061 contains ungrounded factual claim absent from cited policy POL-FINAID-2026-002",
-        "Message MSG-TKT-2026-000086-003 on ticket TKT-2026-000086 contains ungrounded factual claim absent from cited policy POL-REG-2026-003"
+        "Message MSG-TKT-2026-000086-003 on ticket TKT-2026-000086 contains ungrounded factual claim absent from cited policy POL-REG-2026-002"
       ],
       "structuredFailures": [],
       "structuredAnomalyFindingsSample": [
@@ -340,7 +340,7 @@
           "entity": "Message",
           "recordId": "MSG-TKT-2026-000036-003",
           "field": "body",
-          "reason": "Message MSG-TKT-2026-000036-003 on ticket TKT-2026-000036 contains ungrounded factual claim absent from cited policy POL-ACCESS-2026-003"
+          "reason": "Message MSG-TKT-2026-000036-003 on ticket TKT-2026-000036 contains ungrounded factual claim absent from cited policy POL-FINAID-2026-002"
         },
         {
           "entity": "Message",
@@ -352,7 +352,7 @@
           "entity": "Message",
           "recordId": "MSG-TKT-2026-000086-003",
           "field": "body",
-          "reason": "Message MSG-TKT-2026-000086-003 on ticket TKT-2026-000086 contains ungrounded factual claim absent from cited policy POL-REG-2026-003"
+          "reason": "Message MSG-TKT-2026-000086-003 on ticket TKT-2026-000086 contains ungrounded factual claim absent from cited policy POL-REG-2026-002"
         },
         {
           "entity": "Message",
@@ -364,7 +364,7 @@
           "entity": "Message",
           "recordId": "MSG-TKT-2026-000136-003",
           "field": "body",
-          "reason": "Message MSG-TKT-2026-000136-003 on ticket TKT-2026-000136 contains ungrounded factual claim absent from cited policy POL-ACCESS-2026-003"
+          "reason": "Message MSG-TKT-2026-000136-003 on ticket TKT-2026-000136 contains ungrounded factual claim absent from cited policy POL-FINAID-2026-002"
         },
         {
           "entity": "Message",
@@ -376,7 +376,7 @@
           "entity": "Message",
           "recordId": "MSG-TKT-2026-000186-003",
           "field": "body",
-          "reason": "Message MSG-TKT-2026-000186-003 on ticket TKT-2026-000186 contains ungrounded factual claim absent from cited policy POL-REG-2026-003"
+          "reason": "Message MSG-TKT-2026-000186-003 on ticket TKT-2026-000186 contains ungrounded factual claim absent from cited policy POL-REG-2026-002"
         },
         {
           "entity": "Message",
@@ -388,7 +388,7 @@
           "entity": "Message",
           "recordId": "MSG-TKT-2026-000236-003",
           "field": "body",
-          "reason": "Message MSG-TKT-2026-000236-003 on ticket TKT-2026-000236 contains ungrounded factual claim absent from cited policy POL-ACCESS-2026-003"
+          "reason": "Message MSG-TKT-2026-000236-003 on ticket TKT-2026-000236 contains ungrounded factual claim absent from cited policy POL-FINAID-2026-002"
         }
       ],
       "details": "0 version metadata mismatches; flagged 200 messages containing unsupported factual claims (Anomaly Scenario 3)."
@@ -402,10 +402,10 @@
       "violationCount": 0,
       "detectedIntentionalAnomalyCount": 200,
       "sampleFindings": [
-        "SLA SLA-TKT-2026-000015 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false",
+        "SLA SLA-TKT-2026-000015 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false",
         "SLA SLA-TKT-2026-000040 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=540m -> expected breach=false",
-        "SLA SLA-TKT-2026-000065 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false",
-        "SLA SLA-TKT-2026-000090 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=540m -> expected breach=false"
+        "SLA SLA-TKT-2026-000065 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false",
+        "SLA SLA-TKT-2026-000090 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
       ],
       "structuredFailures": [],
       "structuredAnomalyFindingsSample": [
@@ -413,7 +413,7 @@
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000015",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000015 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000015 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
         },
         {
           "entity": "SLA",
@@ -425,19 +425,19 @@
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000065",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000065 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000065 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false"
         },
         {
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000090",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000090 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=540m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000090 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
         },
         {
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000115",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000115 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000115 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
         },
         {
           "entity": "SLA",
@@ -449,19 +449,19 @@
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000165",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000165 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000165 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false"
         },
         {
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000190",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000190 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=540m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000190 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
         },
         {
           "entity": "SLA",
           "recordId": "SLA-TKT-2026-000215",
           "field": "breach_status",
-          "reason": "SLA SLA-TKT-2026-000215 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=240m -> expected breach=false"
+          "reason": "SLA SLA-TKT-2026-000215 (mode=wall_clock_24x7) marked breach_status=true (wall_clock=3960m), whereas business elapsed=180m vs target=1080m -> expected breach=false"
         },
         {
           "entity": "SLA",
@@ -543,13 +543,13 @@
     {
       "entityOrder": 4,
       "entityName": "PolicyDocument",
-      "totalRecords": 12,
+      "totalRecords": 24,
       "primaryKeyFormat": "POL-<DOMAIN>-2026-001",
-      "primaryKeyValidCount": 12,
-      "foreignKeyValidCount": 12,
-      "requiredFieldsValidCount": 12,
-      "enumValidCount": 12,
-      "dateOrderValidCount": 12,
+      "primaryKeyValidCount": 24,
+      "foreignKeyValidCount": 24,
+      "requiredFieldsValidCount": 24,
+      "enumValidCount": 24,
+      "dateOrderValidCount": 24,
       "structuralViolationCount": 0,
       "intentionalAnomalyCount": 0,
       "passed": true
@@ -613,15 +613,15 @@
     {
       "entityOrder": 9,
       "entityName": "Assignment",
-      "totalRecords": 5000,
+      "totalRecords": 5399,
       "primaryKeyFormat": "ASG-<ticket-id>-01",
-      "primaryKeyValidCount": 5000,
-      "foreignKeyValidCount": 5000,
-      "requiredFieldsValidCount": 5000,
-      "enumValidCount": 5000,
-      "dateOrderValidCount": 5000,
+      "primaryKeyValidCount": 5399,
+      "foreignKeyValidCount": 5399,
+      "requiredFieldsValidCount": 5399,
+      "enumValidCount": 5399,
+      "dateOrderValidCount": 5399,
       "structuralViolationCount": 0,
-      "intentionalAnomalyCount": 200,
+      "intentionalAnomalyCount": 183,
       "passed": true
     },
     {
@@ -641,13 +641,13 @@
     {
       "entityOrder": 11,
       "entityName": "ResolutionFeedback",
-      "totalRecords": 4000,
+      "totalRecords": 2667,
       "primaryKeyFormat": "FDB-<ticket-id>",
-      "primaryKeyValidCount": 4000,
-      "foreignKeyValidCount": 4000,
-      "requiredFieldsValidCount": 4000,
-      "enumValidCount": 4000,
-      "dateOrderValidCount": 4000,
+      "primaryKeyValidCount": 2667,
+      "foreignKeyValidCount": 2667,
+      "requiredFieldsValidCount": 2667,
+      "enumValidCount": 2667,
+      "dateOrderValidCount": 2667,
       "structuralViolationCount": 0,
       "intentionalAnomalyCount": 0,
       "passed": true
@@ -655,32 +655,32 @@
   ],
   "distributionsAndCoverage": {
     "requiredFieldCompleteness": {
-      "totalRecordsChecked": 39725,
+      "totalRecordsChecked": 38803,
       "missingRequiredFieldsCount": 0,
       "pass": true,
       "failures": []
     },
     "categoryDistribution": {
-      "Financial Aid": 1250,
-      "Registration": 1250,
-      "IT": 1250,
-      "Accessibility": 1250
+      "Financial Aid": 1750,
+      "Registration": 1500,
+      "Accessibility": 650,
+      "IT": 1100
     },
     "requesterDistribution": {
       "totalRequesters": 500,
       "byRole": {
-        "ROLE-LEARNER": 429,
-        "ROLE-INSTRUCTOR": 71
+        "ROLE-LEARNER": 450,
+        "ROLE-INSTRUCTOR": 50
       },
       "byDepartment": {
-        "Department of Mathematics": 69,
+        "Electrical Engineering & Computer Science": 63,
+        "Department of Economics": 63,
         "School of Public Policy": 63,
-        "Department of Biological Sciences": 68,
-        "Department of Economics": 61,
-        "Electrical Engineering & Computer Science": 65,
-        "School of Architecture & Planning": 64,
-        "College of Humanities & Arts": 63,
-        "Department of Mechanical Engineering": 47
+        "Department of Biological Sciences": 63,
+        "Department of Mathematics": 62,
+        "College of Humanities & Arts": 62,
+        "School of Architecture & Planning": 62,
+        "Department of Mechanical Engineering": 62
       },
       "minTicketsPerRequester": 10,
       "maxTicketsPerRequester": 10
@@ -688,30 +688,35 @@
     "ticketDistribution": {
       "totalTickets": 5000,
       "byStatus": {
-        "resolved": 4000,
-        "under_review": 500,
-        "escalated": 500
+        "resolved": 2484,
+        "under_review": 1151,
+        "policy_verified": 417,
+        "escalated": 399,
+        "closed": 183,
+        "submitted": 283,
+        "draft": 83
       },
       "byPriority": {
-        "Standard Priority": 3350,
-        "Time-Sensitive Academic Priority": 950,
-        "Administrative Escalation Priority": 700
+        "Standard Priority": 3484,
+        "Time-Sensitive Academic Priority": 917,
+        "Administrative Escalation Priority": 599
       }
     },
     "messageDistribution": {
       "totalMessages": 20000,
       "bySequenceNumber": {
         "001": 5000,
-        "002": 5000,
-        "003": 5000,
-        "004": 5000
+        "002": 4917,
+        "003": 4634,
+        "004": 4634,
+        "005": 815
       },
       "byMessageType": {
-        "requester_inquiry": 5000,
-        "system_routing_note": 5000,
-        "ai_grounded_reply": 5000,
-        "resolution_summary": 4500,
-        "escalation_handoff": 500
+        "requester_inquiry": 5815,
+        "system_routing_note": 4917,
+        "ai_grounded_reply": 4634,
+        "resolution_summary": 4235,
+        "escalation_handoff": 399
       },
       "contiguousSequencePass": true
     },
@@ -726,8 +731,8 @@
       "coverageRate": 1
     },
     "feedbackCoverage": {
-      "resolvedTickets": 4000,
-      "feedbackCount": 4000,
+      "resolvedTickets": 2667,
+      "feedbackCount": 2667,
       "coverageRate": 1
     },
     "anomalyDistribution": {
@@ -741,7 +746,7 @@
       }
     },
     "groundTruthIsolation": {
-      "operationalEntitiesInspected": 39725,
+      "operationalEntitiesInspected": 38803,
       "leakedGroundTruthFieldsCount": 0,
       "verifiedIsolated": true
     }

@@ -1,10 +1,10 @@
 {
   "seed": 20261022,
   "mode": "full",
-  "generatedAtAnchor": "2026-09-01T08:00:00.000Z",
+  "generatedAtAnchor": "2026-09-01T13:30:00+05:30",
   "totalTicketsEvaluated": 5000,
   "totalGroundTruthAnomalies": 1000,
-  "totalDetectedAnomalies": 1000,
+  "totalDetectedAnomalies": 983,
   "groundTruthSeparationVerified": true,
   "byAnomalyType": [
     {
@@ -21,13 +21,13 @@
     {
       "anomalyType": "unauthorized_team_routing",
       "groundTruthCount": 200,
-      "detectedCount": 200,
-      "truePositives": 200,
+      "detectedCount": 183,
+      "truePositives": 183,
       "falsePositives": 0,
-      "falseNegatives": 0,
+      "falseNegatives": 17,
       "precision": 1,
-      "recall": 1,
-      "f1Score": 1
+      "recall": 0.915,
+      "f1Score": 0.9556
     },
     {
       "anomalyType": "unsupported_factual_claim",
@@ -77,12 +77,12 @@
       "truePositives": 200,
       "falsePositives": 0,
       "falseNegatives": 0,
-      "expectedGroundTruthOutcome": "Cite active policy POL-IT-2026-002 (v2.0, effective 2026-05-01) and active article KB-000032 (v2.0).",
-      "actualOperationalRecordObserved": "Cited expired policy POL-IT-2026-001 (v1.0, expired 2026-04-30) on ticket submitted 2026-09-03.",
-      "actualSystemRemediationOutcome": "Retrieval engine excluded expired POL-IT-2026-001 v1.0 and selected active superseding policy POL-IT-2026-002 v2.0 (effective 2026-05-01).",
+      "expectedGroundTruthOutcome": "Cite active policy version for category 'Accessibility' (v2.0)",
+      "actualOperationalRecordObserved": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
+      "actualSystemRemediationOutcome": "Retrieval engine excluded expired POL-ACCESS-2026-001 v1.0 and selected active superseding policy POL-ACCESS-2026-003 v1.0 (effective 2026-01-15).",
       "wasDetected": true,
       "wasHandledCorrectly": true,
-      "evidenceAndFailureExplanation": "Ticket TKT-2026-000003 (submitted 2026-09-03) referenced POL-IT-2026-001 v1.0, which expired prior to submission. VAL-05 and retrieveApplicablePolicyEvidence() detected 100% (200/200) of expired citations and enforced active v2.0 policy citation.",
+      "evidenceAndFailureExplanation": "Ticket TKT-2026-000003 (submitted 2026-10-19) referenced POL-ACCESS-2026-001 v1.0, which expired prior to submission. VAL-05 and retrieveApplicablePolicyEvidence() detected 100% (200/200) of expired citations and enforced active v2.0 policy citation.",
       "ruleReference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
       "passFailResult": "PASS"
     },
@@ -95,18 +95,18 @@
       "sampleTicketId": "TKT-2026-000007",
       "sampleGroundTruthAnomalyId": "ANM-2026-000002",
       "groundTruthCount": 200,
-      "detectedCount": 200,
-      "truePositives": 200,
+      "detectedCount": 183,
+      "truePositives": 183,
       "falsePositives": 0,
-      "falseNegatives": 0,
-      "expectedGroundTruthOutcome": "Route 'IT' ticket to 'Campus IT Operations & Identity Desk' under rule 'RULE-IT-001'.",
-      "actualOperationalRecordObserved": "Routed 'IT' ticket to unauthorized team 'Office of Financial Aid & Scholarships' under rule 'RULE-FINAID-001'.",
-      "actualSystemRemediationOutcome": "validateTicketAssignmentAndRouting() rejected unauthorized team 'Office of Financial Aid & Scholarships' and evaluateTicketRouting() assigned 'Campus IT Operations & Identity Desk' under 'RULE-IT-001'.",
-      "wasDetected": true,
+      "falseNegatives": 17,
+      "expectedGroundTruthOutcome": "Assign to 'Office of the University Registrar' via RULE-REG-001",
+      "actualOperationalRecordObserved": "Assigned to 'Office of Financial Aid & Scholarships' via RULE-FINAID-001",
+      "actualSystemRemediationOutcome": "validateTicketAssignmentAndRouting() rejected unauthorized team 'Office of Financial Aid & Scholarships' and evaluateTicketRouting() assigned 'Office of the University Registrar' under 'RULE-REG-001'.",
+      "wasDetected": false,
       "wasHandledCorrectly": true,
-      "evidenceAndFailureExplanation": "Assignment ASG-TKT-2026-000007-01 on 'IT' ticket TKT-2026-000007 was routed to 'Office of Financial Aid & Scholarships'. VAL-09 and validateTicketAssignmentAndRouting() flagged all 200/200 unauthorized assignments against RULE-IT-001.",
-      "ruleReference": "RULE-IT-001",
-      "passFailResult": "PASS"
+      "evidenceAndFailureExplanation": "Assignment ASG-TKT-2026-000007-01 on 'Registration' ticket TKT-2026-000007 was routed to 'Office of Financial Aid & Scholarships'. VAL-09 and validateTicketAssignmentAndRouting() flagged all 183/200 unauthorized assignments against RULE-REG-001.",
+      "ruleReference": "RULE-REG-001",
+      "passFailResult": "FAIL"
     },
     {
       "scenarioNumber": 3,
@@ -121,9 +121,9 @@
       "truePositives": 200,
       "falsePositives": 0,
       "falseNegatives": 0,
-      "expectedGroundTruthOutcome": "Restrict response strictly to facts stated in POL-IT-2026-002 v2.0 (Section 1.2 (Current)).",
-      "actualOperationalRecordObserved": "Response MSG-TKT-2026-000011-003 asserted an unverified '$5,000 cash grant and 45-day deadline waiver' absent from POL-IT-2026-002.",
-      "actualSystemRemediationOutcome": "RAG grounding verifier flagged unsupported factual claim (Monetary fees, fines, dollar amounts, or cash reimbursements are not established in the retrieved active policy documents.) and blocked ungrounded assertion, recommending human escalation.",
+      "expectedGroundTruthOutcome": "Ground AI reply strictly in POL-IT-2026-002 v2.0",
+      "actualOperationalRecordObserved": "Claimed automatic $5,000 cash grant and 45-day deadline waiver without policy basis",
+      "actualSystemRemediationOutcome": "RAG grounding verifier flagged unsupported factual claim (Automatic approval guarantees or unscheduled supplemental services requested in the question are not supported by the active institutional policy text.) and blocked ungrounded assertion, recommending human escalation.",
       "wasDetected": true,
       "wasHandledCorrectly": true,
       "evidenceAndFailureExplanation": "Message MSG-TKT-2026-000011-003 on ticket TKT-2026-000011 asserted an unverified '$5,000 cash grant and 45-day deadline waiver' absent from POL-IT-2026-002. VAL-10 and retrieveApplicablePolicyEvidence() detected all 200/200 ungrounded claims with 0 false positives.",
@@ -143,13 +143,13 @@
       "truePositives": 200,
       "falsePositives": 0,
       "falseNegatives": 0,
-      "expectedGroundTruthOutcome": "Compute elapsed_business_minutes=180m under SCHED-CONFIG-MON-FRI-0800-1700-UTC vs target=240m -> breach_status=false.",
-      "actualOperationalRecordObserved": "Computed breach_status=true using raw 24x7 wall-clock elapsed=3960m across weekend non-working hours.",
-      "actualSystemRemediationOutcome": "Business-hour SLA calculator excluded weekend non-working hours (Fri 15:30 -> Mon 09:30 UTC), computing elapsed_business_minutes=180m vs target=240m -> breach_status=false.",
+      "expectedGroundTruthOutcome": "Evaluate elapsed time under institutional business hours (180 elapsed business minutes)",
+      "actualOperationalRecordObserved": "Evaluated under raw 24x7 wall-clock time (3,960 elapsed minutes) falsely declaring breach",
+      "actualSystemRemediationOutcome": "Business-hour SLA calculator excluded weekend non-working hours (Fri 15:30 -> Mon 09:30 UTC), computing elapsed_business_minutes=180m vs target=1080m -> breach_status=false.",
       "wasDetected": true,
       "wasHandledCorrectly": true,
       "evidenceAndFailureExplanation": "SLA SLA-TKT-2026-000015 evaluated under wall_clock_24x7 counted 3,960 raw minutes across the weekend and falsely marked breach_status=true. VAL-11 and calculateElapsedBusinessMinutes() detected all 200/200 wall-clock SLA anomalies and verified 180 business minutes elapsed.",
-      "ruleReference": "SLA-RULE-IT-CFG-01",
+      "ruleReference": "SLA-RULE-FINAID-CFG-01",
       "passFailResult": "PASS"
     },
     {
@@ -165,13 +165,13 @@
       "truePositives": 200,
       "falsePositives": 0,
       "falseNegatives": 0,
-      "expectedGroundTruthOutcome": "Transition ticket TKT-2026-000019 to 'escalated' and assign to 'Information Security & Infrastructure Escalation Unit'.",
-      "actualOperationalRecordObserved": "Ticket TKT-2026-000019 remained assigned to 'Campus IT Operations & Identity Desk' and transitioned directly to 'resolved' without escalation.",
+      "expectedGroundTruthOutcome": "Escalate to 'Information Security & Infrastructure Escalation Unit' with requires_escalation=true",
+      "actualOperationalRecordObserved": "Resolved directly at frontline support level without mandatory escalation",
       "actualSystemRemediationOutcome": "Escalation engine detected mandatory trigger 'human_review_required' and recommended transition to 'escalated' assigned to 'Information Security & Infrastructure Escalation Unit'.",
       "wasDetected": true,
       "wasHandledCorrectly": true,
       "evidenceAndFailureExplanation": "Ticket TKT-2026-000019 had requires_escalation=true (Administrative Escalation Priority) but transitioned directly to 'resolved' without escalation. VAL-07 and evaluateTicketEscalationAndExceptions() detected all 200/200 missed escalations.",
-      "ruleReference": "MANDATORY_ESCALATION_POLICY_RULE",
+      "ruleReference": "RULE-IT-001",
       "passFailResult": "PASS"
     }
   ],
@@ -181,33 +181,33 @@
       "related_record_id": "TKT-2026-000003",
       "ticket_id": "TKT-2026-000003",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'IT'",
-      "actual_observed_decision": "Cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)",
+      "expected_decision": "Cite active policy version for category 'Accessibility'",
+      "actual_observed_decision": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-IT-2026-001 cited on TKT-2026-000003."
+      "explanation": "Operational detector identified expired policy POL-ACCESS-2026-001 cited on TKT-2026-000003."
     },
     {
       "anomaly_id": "DET-000002",
       "related_record_id": "TKT-2026-000028",
       "ticket_id": "TKT-2026-000028",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'Accessibility'",
-      "actual_observed_decision": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
+      "expected_decision": "Cite active policy version for category 'Financial Aid'",
+      "actual_observed_decision": "Cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-ACCESS-2026-001 cited on TKT-2026-000028."
+      "explanation": "Operational detector identified expired policy POL-FINAID-2026-001 cited on TKT-2026-000028."
     },
     {
       "anomaly_id": "DET-000003",
       "related_record_id": "TKT-2026-000053",
       "ticket_id": "TKT-2026-000053",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'Financial Aid'",
-      "actual_observed_decision": "Cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
+      "expected_decision": "Cite active policy version for category 'Registration'",
+      "actual_observed_decision": "Cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-FINAID-2026-001 cited on TKT-2026-000053."
+      "explanation": "Operational detector identified expired policy POL-REG-2026-001 cited on TKT-2026-000053."
     },
     {
       "anomaly_id": "DET-000004",
@@ -225,33 +225,33 @@
       "related_record_id": "TKT-2026-000103",
       "ticket_id": "TKT-2026-000103",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'IT'",
-      "actual_observed_decision": "Cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)",
+      "expected_decision": "Cite active policy version for category 'Accessibility'",
+      "actual_observed_decision": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-IT-2026-001 cited on TKT-2026-000103."
+      "explanation": "Operational detector identified expired policy POL-ACCESS-2026-001 cited on TKT-2026-000103."
     },
     {
       "anomaly_id": "DET-000006",
       "related_record_id": "TKT-2026-000128",
       "ticket_id": "TKT-2026-000128",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'Accessibility'",
-      "actual_observed_decision": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
+      "expected_decision": "Cite active policy version for category 'Financial Aid'",
+      "actual_observed_decision": "Cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-ACCESS-2026-001 cited on TKT-2026-000128."
+      "explanation": "Operational detector identified expired policy POL-FINAID-2026-001 cited on TKT-2026-000128."
     },
     {
       "anomaly_id": "DET-000007",
       "related_record_id": "TKT-2026-000153",
       "ticket_id": "TKT-2026-000153",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'Financial Aid'",
-      "actual_observed_decision": "Cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
+      "expected_decision": "Cite active policy version for category 'Registration'",
+      "actual_observed_decision": "Cited expired policy POL-REG-2026-001 v1.0 (expired 2026-05-31)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-FINAID-2026-001 cited on TKT-2026-000153."
+      "explanation": "Operational detector identified expired policy POL-REG-2026-001 cited on TKT-2026-000153."
     },
     {
       "anomaly_id": "DET-000008",
@@ -269,22 +269,22 @@
       "related_record_id": "TKT-2026-000203",
       "ticket_id": "TKT-2026-000203",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'IT'",
-      "actual_observed_decision": "Cited expired policy POL-IT-2026-001 v1.0 (expired 2026-04-30)",
+      "expected_decision": "Cite active policy version for category 'Accessibility'",
+      "actual_observed_decision": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-IT-2026-001 cited on TKT-2026-000203."
+      "explanation": "Operational detector identified expired policy POL-ACCESS-2026-001 cited on TKT-2026-000203."
     },
     {
       "anomaly_id": "DET-000010",
       "related_record_id": "TKT-2026-000228",
       "ticket_id": "TKT-2026-000228",
       "anomaly_type": "expired_policy_citation",
-      "expected_decision": "Cite active policy version for category 'Accessibility'",
-      "actual_observed_decision": "Cited expired policy POL-ACCESS-2026-001 v1.0 (expired 2026-06-15)",
+      "expected_decision": "Cite active policy version for category 'Financial Aid'",
+      "actual_observed_decision": "Cited expired policy POL-FINAID-2026-001 v1.0 (expired 2026-06-30)",
       "ground_truth_label": "ANOMALY_PRESENT",
       "rule_reference": "POLICY_EFFECTIVE_DATE_APPLICABILITY_RULE",
-      "explanation": "Operational detector identified expired policy POL-ACCESS-2026-001 cited on TKT-2026-000228."
+      "explanation": "Operational detector identified expired policy POL-FINAID-2026-001 cited on TKT-2026-000228."
     }
   ]
 }

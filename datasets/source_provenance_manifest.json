@@ -1,7 +1,7 @@
 {
   "manifestVersion": "2026.10-phase4",
   "seed": 20261022,
-  "generatedAtAnchor": "2026-09-01T08:00:00.000Z",
+  "generatedAtAnchor": "2026-09-01T13:30:00+05:30",
   "lawfulSyntheticProvenanceDeclaration": "All records in this benchmark dataset are 100% synthetic, deterministically generated using seed 20261022 under CC0-1.0 for the YottaFlex AI Code Challenge. No real student PII, real university administrative records, or copyrighted institutional policy texts are used. Synthetic email addresses use the RFC 2606 reserved .invalid TLD (@synthetic.campusresolve.invalid) and synthetic URIs use the urn:campusresolve:synthetic-* namespace.",
   "classifications": {
     "CONFIRMED_CHALLENGE_REQUIREMENT": [

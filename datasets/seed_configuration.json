@@ -1,7 +1,7 @@
 {
   "seed": 20261022,
   "prngAlgorithm": "Mulberry32 (32-bit deterministic integer state)",
-  "anchorTimestampIso": "2026-09-01T08:00:00.000Z",
+  "anchorTimestampIso": "2026-09-01T13:30:00+05:30",
   "masterFirstGenerationOrder": [
     "1. Requester",
     "2. Role",
@@ -21,7 +21,7 @@
     "messagesPerTicket": 4,
     "totalMessages": 20000,
     "requesterCount": 500,
-    "policyDocumentCount": 12,
+    "policyDocumentCount": 24,
     "categoryCount": 4,
     "roleCount": 5,
     "termCount": 4
