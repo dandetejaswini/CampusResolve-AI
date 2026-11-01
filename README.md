@@ -1,27 +1,48 @@
 # CampusResolve AI
 
-CampusResolve AI is an enterprise academic support and policy resolution platform designed for higher education institutions. It streamlines and orchestrates the end-to-end lifecycle of student and faculty requests across four key institutional domains: Financial Aid, Registration, IT Services, and Accessibility Accommodations. The system automates departmental triage, tracks business-hour SLA deadlines, detects compliance anomalies, and maintains historical audit trails for administrative escalations.
+Enterprise academic support and policy resolution platform designed for higher education institutions.
+
+### Platform Overview
+- **Core Purpose**: Streamlines and orchestrates the end-to-end lifecycle of student and faculty academic requests.
+- **Institutional Domains**: Financial Aid, Registration & Records, IT Services, and Accessibility Accommodations.
+- **Key Capabilities**: Automated departmental triage, business-hour SLA deadline tracking, compliance anomaly detection, and immutable administrative audit trails.
 
 ### Policy-Grounded AI & Guardrails
-
-At the core of the platform is an AI Policy Assistant powered by Retrieval-Augmented Generation (RAG). When students or faculty submit inquiries, the assistant matches their questions against published institutional policies and knowledge base articles, citing authoritative section numbers and effective dates. To ensure compliance, the engine proactively detects and rejects citations to expired or superseded policies, blocks unsupported factual claims, and requests clarification whenever student inquiries contain ambiguous or contradictory details.
+- **Retrieval-Augmented Generation (RAG)**: Grounds student and faculty inquiries in verified institutional policies and knowledge base articles.
+- **Authoritative Citations**: Directly references exact policy IDs, article numbers, and effective dates.
+- **Compliance Guardrails**: Automatically detects and rejects citations to expired or superseded policies.
+- **Hallucination Blocking**: Blocks unverified factual claims without citations and requests clarification for ambiguous student inquiries.
 
 ### Multi-Actor Role Architecture
+- **Learner**: Submits academic petitions, tracks real-time progress, and provides post-resolution feedback.
+- **Instructor**: Coordinates classroom accommodations and provides faculty attestations for student appeals.
+- **Support Staff**: Triages incoming tickets, validates policy citations, and manages initial resolutions.
+- **Academic Administrator**: Reviews escalated cases, approves policy exceptions, and publishes governing documentation.
+- **Platform Administrator**: Configures institutional SLA rules, business hours, and monitors platform health.
+- **Role Switcher**: In-app role selector in the top navigation bar allows instant role switching for evaluation and review.
 
-CampusResolve AI provides tailored workspaces and role-based access control (RBAC) across five institutional perspectives. Learners submit academic petitions and provide post-resolution feedback. Instructors coordinate course accommodations and attest to student appeals. Support Staff triage incoming tickets and verify policy citations. Academic Administrators review escalated cases, approve exceptions, and publish governing policies. Platform Administrators configure institutional SLA rules and monitor system integrity. Reviewers can preview each role instantly using the in-app role switcher in the top navigation bar.
-
-### Synthetic Benchmark & Comparative Evaluation
-
-The repository includes a complete, deterministic synthetic dataset generated with fixed seed `20261022` and anchor date `2026-09-01T13:30:00+05:30`. The dataset contains exactly 5,000 tickets, 20,000 messages, 200 knowledge articles, and 24 policy documents. It accurately reflects academic term surges (such as add/drop and financial aid deadlines) and features diverse, messy student writing styles, including urgent deadline requests and informal phrasing. A held-out evaluation framework benchmarks the system against keyword and heuristic baselines across five negative scenarios, achieving 98.6% overall accuracy, 100% precision, and a 0.9637 F1 score.
+### Synthetic Benchmark & Evaluation
+- **Deterministic Generation**: Generated with fixed seed `20261022` and anchor date `2026-09-01T13:30:00+05:30`.
+- **Dataset Scale**: Exactly 5,000 tickets, 20,000 messages, 200 knowledge articles, and 24 policy documents.
+- **Realistic Surges**: Simulates peak term volumes (add/drop windows, financial aid deadlines) and diverse student writing styles.
+- **Benchmark Performance**: 98.6% overall accuracy, 100% precision, and a 0.9637 F1 score across 5 negative compliance scenarios.
 
 ### Getting Started & Local Development
-
-To run the application locally, clone the repository, install dependencies using `npm install`, and copy `.env.example` to `.env` with your Supabase and Firebase configuration keys. Start the application by running `npm run dev`, and access the local workspace at `http://localhost:3000`. You can execute the automated test suite with `npm test`, run TypeScript typechecks with `npm run lint`, or deterministically regenerate the dataset and verification checksums using `npm run generate:dataset`.
+- **Clone & Install**:
+  ```bash
+  git clone https://github.com/dandetejaswini/CampusResolve-AI.git
+  cd CampusResolve-AI
+  npm install
+  ```
+- **Configuration**: Copy `.env.example` to `.env` and provide your Supabase and Firebase keys.
+- **Run Application**:
+  - `npm run dev`: Launch local development server at `http://localhost:3000`.
+  - `npm test`: Run complete automated validation and regression suite (112 tests).
+  - `npm run lint`: Run TypeScript typechecks without emitting files.
+  - `npm run generate:dataset`: Deterministically regenerate synthetic benchmark dataset and checksums.
 
 ### Documentation & Reference Guides
-
-All technical documentation, schemas, and challenge submission guides are located in the `docs/` directory:
-
+All technical architecture specifications and evaluation methodologies are organized in `docs/`:
 - [Data Dictionary (All 11 Entities)](docs/DATA_DICTIONARY.md) — Comprehensive schema specifications, data types, constraints, and validation rules.
 - [Testing & Evaluation Methodology](docs/TESTING_AND_EVALUATION.md) — Baseline comparison metrics, confusion matrices, and validation reports.
 - [Architecture & Design Decisions](docs/ARCHITECTURE_AND_DESIGN_DECISIONS.md) — Technical architecture, state machine DAGs, and RAG design principles.
@@ -32,5 +53,5 @@ All technical documentation, schemas, and challenge submission guides are locate
 - [AI Usage & Prompt History](docs/AI_USAGE_AND_PROMPT_HISTORY.md) — Transparent disclosure of AI assistance and developer oversight.
 
 ### Live Application
-
-CampusResolve AI is hosted live on Vercel at [https://campusresolve-ai.vercel.app](https://campusresolve-ai.vercel.app). Reviewers can test all workflows directly or sign in with Google to experience live workspace synchronization.
+- **Production URL**: [https://campus-resolve-ai.vercel.app](https://campus-resolve-ai.vercel.app)
+- **Live Features**: Role-based access switching, operational tickets, and policy-grounded query testing.
