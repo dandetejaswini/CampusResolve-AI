@@ -437,8 +437,8 @@ describe('Phase 8: Comprehensive Evaluation and Validation Suite (15 Required Ar
   // 13. Fixed-seed reproducibility
   it('13. Fixed-seed reproducibility: repeated runs with seed 20261022 produce identical records, counts, IDs, and evaluation outputs', () => {
     assert.equal(DETERMINISTIC_SEED, 20261022);
-    assert.equal(BASE_ANCHOR_DATE_ISO, '2026-09-01T08:00:00.000Z');
-    assert.equal(baseBundle.metadata.generatedAtAnchor, '2026-09-01T08:00:00.000Z');
+    assert.equal(BASE_ANCHOR_DATE_ISO, '2026-09-01T13:30:00+05:30');
+    assert.equal(baseBundle.metadata.generatedAtAnchor, '2026-09-01T13:30:00+05:30');
 
     const reproReport = verifyFixedSeedReproducibility({
       seed: DETERMINISTIC_SEED,
