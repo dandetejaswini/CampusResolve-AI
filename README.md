@@ -79,9 +79,16 @@ Open http://localhost:3000.
 - Restricted access to internal records and evaluation data.
 
 ## Documentation
-- [Setup and Architecture](SETUP_AND_ARCHITECTURE.md)
-- [Data Dictionary and Architecture](DATA_DICTIONARY_AND_ARCHITECTURE.md)
-- [Dataset and Evaluation Files](datasets/)
+
+Detailed submission documentation and architecture guides:
+- [AI Usage and Prompt History](docs/AI_USAGE_AND_PROMPT_HISTORY.md)
+- [Architecture and Design Decisions](docs/ARCHITECTURE_AND_DESIGN_DECISIONS.md)
+- [Testing and Evaluation](docs/TESTING_AND_EVALUATION.md)
+- [Deployment and Setup Guide](docs/DEPLOYMENT_AND_SETUP_GUIDE.md)
+- [Limitations and Future Improvements](docs/LIMITATIONS_AND_FUTURE_IMPROVEMENTS.md)
+- [Setup and Architecture Guide](SETUP_AND_ARCHITECTURE.md)
+- [Data Dictionary and Schema Definition](DATA_DICTIONARY_AND_ARCHITECTURE.md)
+- [Synthetic Datasets](datasets/)
 
 ## License
 No license has been specified yet.
