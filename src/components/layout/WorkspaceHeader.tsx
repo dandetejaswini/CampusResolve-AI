@@ -102,7 +102,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         </div>
       </div>
 
-      {/* Role & View Controls Toolbar */}
+      {/* Role Perspective Controls Toolbar */}
       <div className="pt-2.5 border-t border-[#292A25]/10 flex flex-wrap items-center justify-between gap-4 text-xs">
         {/* Five Institutional Role Perspective Switcher */}
         <div className="flex flex-wrap items-center gap-2">
@@ -136,37 +136,26 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           </div>
         </div>
 
-        {/* Display State Switcher */}
-        <div className="flex items-center gap-2">
-          <span className="text-[#292A25]/70 font-medium">Display Mode:</span>
-          <div
-            role="group"
-            aria-label="Select workspace display mode"
-            className="flex items-center gap-1 p-1 rounded-md bg-[#E8E4DC]/75 border border-[#292A25]/12"
-          >
-            {(
-              [
-                { id: ViewDataState.Empty, label: 'Live Records' },
-                { id: ViewDataState.Loading, label: 'Loading View' },
-                { id: ViewDataState.Error, label: 'Fallback Notice' },
-              ] as const
-            ).map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => onDataStateChange(st.id)}
-                aria-pressed={dataState === st.id}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                  dataState === st.id
-                    ? 'bg-[#777B63] text-[#F8F7F3] shadow-2xs'
-                    : 'text-[#292A25]/75 hover:text-[#292A25] hover:bg-[#F8F7F3]/70'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
+        {/* Account Role vs Preview Indicator */}
+        {profile && activeRole !== profile.actor_role ? (
+          <div className="flex items-center gap-2 text-xs text-[#777B63]">
+            <span>
+              Previewing <strong>{actorMeta.label}</strong> view (Your account role:{' '}
+              <strong>{authoritativeRoleMeta.label}</strong>)
+            </span>
+            <button
+              type="button"
+              onClick={() => onRoleChange(profile.actor_role)}
+              className="underline underline-offset-4 font-semibold text-[#292A25] hover:text-[#777B63] transition-colors"
+            >
+              Reset to My Role
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="text-xs text-[#292A25]/60">
+            Active Role: <strong className="text-[#292A25]">{authoritativeRoleMeta.label}</strong>
+          </div>
+        )}
       </div>
     </header>
   );

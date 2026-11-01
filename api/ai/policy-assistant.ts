@@ -1,26 +1,26 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { ActorRole } from '../../src/types/domain';
+import { ActorRole } from '../../src/types/domain.js';
 import {
   AIRetrievalLogRecord,
   KnowledgeArticleRecord,
   OfficialCategoryName,
   PolicyDocumentRecord,
   PolicyVersionHistoryRecord,
-} from '../../src/types/phase3';
+} from '../../src/types/phase3.js';
 import {
   ConflictingSourcePair,
   DOCUMENTED_ROUTING_RULES,
   UNMAPPED_HUMAN_REVIEW_ROUTING,
   evaluateSourceApplicability,
   retrieveApplicablePolicyEvidence,
-} from '../../src/services/workflowEngine';
+} from '../../src/services/workflowEngine.js';
 import {
   InjectedWorkspaceTestContext,
   VerifiedCallerIdentity,
   createServiceRoleSupabaseClient,
   getReferenceCorpus,
   verifyAuthenticatedProfileFromHeaders,
-} from '../ops/workspace';
+} from '../ops/workspace.js';
 
 export interface PolicyAssistantQueryInput {
   action?: 'query' | 'feedback' | 'link_escalation_ticket';
@@ -1132,20 +1132,31 @@ export async function processPolicyAssistantRequest(
 }
 
 export default async function handler(req: any, res: any) {
-  let parsedBody = req.body;
-  if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
-    try {
-      parsedBody = JSON.parse(parsedBody);
-    } catch {
-      parsedBody = undefined;
+  try {
+    let parsedBody = req.body;
+    if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
+      try {
+        parsedBody = JSON.parse(parsedBody);
+      } catch {
+        parsedBody = undefined;
+      }
     }
+    const result = await processPolicyAssistantRequest(
+      req.method,
+      parsedBody,
+      req.headers || {}
+    );
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      code: 'SERVER_ERROR',
+      message:
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred in the policy assistant service.',
+    });
   }
-  const result = await processPolicyAssistantRequest(
-    req.method,
-    parsedBody,
-    req.headers || {}
-  );
-  res.status(result.status).json(result.body);
 }
 
 

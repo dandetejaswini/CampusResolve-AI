@@ -1,20 +1,47 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { AuthStatus, useAuth } from '../../context/AuthContext';
 
-const NAV_LINKS = [
+export interface PublicNavItem {
+  to: string;
+  label: string;
+  end: boolean;
+}
+
+const BASE_PUBLIC_NAV_LINKS: PublicNavItem[] = [
   { to: '/', label: 'Home', end: true },
   { to: '/about', label: 'About', end: false },
   { to: '/features', label: 'Features', end: false },
   { to: '/contact', label: 'Contact', end: false },
-  { to: '/sign-in', label: 'Sign In', end: false },
 ];
+
+export function getPublicNavigationItems(
+  status: AuthStatus,
+  hasProfile: boolean
+): PublicNavItem[] {
+  const isAuthenticated = status === 'authenticated' && hasProfile;
+  if (status === 'loading') {
+    return [...BASE_PUBLIC_NAV_LINKS];
+  }
+  if (isAuthenticated) {
+    return [
+      ...BASE_PUBLIC_NAV_LINKS,
+      { to: '/workspace/dashboard', label: 'Open Workspace', end: false },
+    ];
+  }
+  return [
+    ...BASE_PUBLIC_NAV_LINKS,
+    { to: '/sign-in', label: 'Sign In', end: false },
+  ];
+}
 
 export const PublicNavbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { status, profile } = useAuth();
   const isAuthenticated = status === 'authenticated' && Boolean(profile);
+  const isLoading = status === 'loading';
+  const navLinks = getPublicNavigationItems(status, Boolean(profile));
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#F8F7F3]/95 backdrop-blur-xs border-b border-[#292A25]/12">
@@ -27,12 +54,12 @@ export const PublicNavbar: React.FC = () => {
           CampusResolve AI
         </Link>
 
-        {/* Zone 2: 5 clean single-line text navigation links */}
+        {/* Zone 2: Clean single-line text navigation links */}
         <nav
           aria-label="Primary navigation"
           className="hidden md:flex items-center gap-7 text-sm font-medium text-[#292A25]/75"
         >
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -51,8 +78,15 @@ export const PublicNavbar: React.FC = () => {
         </nav>
 
         {/* Zone 3: 1 primary action */}
-        <div className="hidden md:flex items-center shrink-0">
-          {isAuthenticated ? (
+        <div className="hidden md:flex items-center shrink-0 min-w-[136px] justify-end">
+          {isLoading ? (
+            <span
+              aria-live="polite"
+              className="px-4 py-2 text-xs font-medium text-[#292A25]/55 bg-[#E8E4DC]/65 rounded-md whitespace-nowrap"
+            >
+              Checking session...
+            </span>
+          ) : isAuthenticated ? (
             <Link
               to="/workspace/dashboard"
               className="px-4 py-2 text-xs font-medium text-[#F8F7F3] bg-[#292A25] rounded-md hover:bg-[#777B63] transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#777B63]"
@@ -93,7 +127,7 @@ export const PublicNavbar: React.FC = () => {
           aria-label="Mobile navigation"
           className="md:hidden border-t border-[#292A25]/12 bg-[#F8F7F3] px-6 py-5 flex flex-col gap-3 animate-page-enter"
         >
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -108,15 +142,17 @@ export const PublicNavbar: React.FC = () => {
               {link.label}
             </NavLink>
           ))}
-          <div className="pt-2 border-t border-[#292A25]/10">
-            <Link
-              to={isAuthenticated ? '/workspace/dashboard' : '/sign-up'}
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-[#F8F7F3] bg-[#292A25] rounded-md hover:bg-[#777B63] transition-colors"
-            >
-              {isAuthenticated ? 'Open Workspace' : 'Create Account'}
-            </Link>
-          </div>
+          {!isLoading && (
+            <div className="pt-2 border-t border-[#292A25]/10">
+              <Link
+                to={isAuthenticated ? '/workspace/dashboard' : '/sign-up'}
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-[#F8F7F3] bg-[#292A25] rounded-md hover:bg-[#777B63] transition-colors"
+              >
+                {isAuthenticated ? 'Open Workspace' : 'Create Account'}
+              </Link>
+            </div>
+          )}
         </nav>
       )}
     </header>

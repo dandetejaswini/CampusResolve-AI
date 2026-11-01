@@ -436,8 +436,8 @@ export async function processWelcomeEmailRequest(
         sentAt: sentAtIso,
         failureDetails: null,
         message: alreadySentByScript
-          ? `Google Apps Script confirmed welcome email was already sent to ${verifiedProfile.verified_email}.`
-          : `Google Apps Script MailApp.sendEmail succeeded from ${DEDICATED_GMAIL_SENDER} to ${verifiedProfile.verified_email} (note: final inbox placement depends on the recipient mail server).`,
+          ? 'Welcome email was already sent for this account.'
+          : 'Your welcome email has been sent successfully.',
       },
     };
   } catch (error) {
@@ -457,7 +457,7 @@ export async function processWelcomeEmailRequest(
         deliveryStatus: 'failed',
         sentAt: null,
         failureDetails: errMessage,
-        message: `Failed to reach Google Apps Script Web App: ${errMessage}`,
+        message: 'Unable to send welcome email at this time.',
       },
     };
   }
@@ -465,19 +465,34 @@ export async function processWelcomeEmailRequest(
 
 // Vercel Serverless Function Default Handler
 export default async function handler(req: any, res: any) {
-  let parsedBody = req.body;
-  if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
-    try {
-      parsedBody = JSON.parse(parsedBody);
-    } catch {
-      parsedBody = undefined;
+  try {
+    let parsedBody = req.body;
+    if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
+      try {
+        parsedBody = JSON.parse(parsedBody);
+      } catch {
+        parsedBody = undefined;
+      }
     }
+    const result = await processWelcomeEmailRequest(
+      req.method,
+      parsedBody,
+      req.headers || {}
+    );
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      requestAccepted: false,
+      appsScriptExecuted: false,
+      emailSendApiSucceeded: false,
+      inboxDeliveryGuaranteed: false,
+      senderEmail: DEDICATED_GMAIL_SENDER,
+      deliveryStatus: 'failed',
+      sentAt: null,
+      failureDetails: err instanceof Error ? err.message : 'Unexpected server error',
+      message: 'Unable to process welcome email request at this time.',
+    });
   }
-  const result = await processWelcomeEmailRequest(
-    req.method,
-    parsedBody,
-    req.headers || {}
-  );
-  res.status(result.status).json(result.body);
 }
 

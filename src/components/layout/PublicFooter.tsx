@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const PublicFooter: React.FC = () => {
+  const { status, profile } = useAuth();
+  const isAuthenticated = status === 'authenticated' && Boolean(profile);
+
   return (
     <footer className="w-full bg-[#292A25] text-[#F8F7F3] border-t border-[#292A25]">
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -58,16 +62,20 @@ export const PublicFooter: React.FC = () => {
               Workspace & Access
             </h2>
             <ul className="flex flex-col gap-2.5 text-sm text-[#E8E4DC]/80">
-              <li>
-                <Link to="/sign-in" className="hover:text-[#F8F7F3] transition-colors">
-                  Sign In
-                </Link>
-              </li>
-              <li>
-                <Link to="/sign-up" className="hover:text-[#F8F7F3] transition-colors">
-                  Sign Up
-                </Link>
-              </li>
+              {!isAuthenticated && status !== 'loading' && (
+                <>
+                  <li>
+                    <Link to="/sign-in" className="hover:text-[#F8F7F3] transition-colors">
+                      Sign In
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/sign-up" className="hover:text-[#F8F7F3] transition-colors">
+                      Sign Up
+                    </Link>
+                  </li>
+                </>
+              )}
               <li>
                 <Link
                   to="/workspace/dashboard"

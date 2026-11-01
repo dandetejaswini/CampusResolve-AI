@@ -1,4 +1,4 @@
-import { ActorRole, RequestStatus } from './domain';
+import { ActorRole, RequestStatus } from './domain.js';
 
 /**
  * Official challenge ticket categories (Section 7).

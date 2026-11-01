@@ -13,8 +13,11 @@ import { RequestStatus } from '../../types/domain';
 import { StatusIndicator } from '../../components/ui/StatusIndicator';
 import { WorkflowSpatialDiagram } from '../../components/ui/WorkflowSpatialDiagram';
 import { UniversityVisualCard } from '../../components/ui/UniversityVisuals';
+import { useAuth } from '../../context/AuthContext';
 
 export const HomePage: React.FC = () => {
+  const { status, profile } = useAuth();
+  const isAuthenticated = status === 'authenticated' && Boolean(profile);
   return (
     <div className="flex flex-col">
       {/* 1. Premium Hero Section with 3D Layered Workflow Stack */}
@@ -478,12 +481,14 @@ export const HomePage: React.FC = () => {
                 >
                   Open Workspace
                 </Link>
-                <Link
-                  to="/sign-in"
-                  className="px-5 py-2.5 text-xs font-medium text-[#292A25] border border-[#292A25]/25 rounded-md hover:border-[#292A25] bg-[#F8F7F3] transition-colors whitespace-nowrap"
-                >
-                  Sign In
-                </Link>
+                {!isAuthenticated && status !== 'loading' && (
+                  <Link
+                    to="/sign-in"
+                    className="px-5 py-2.5 text-xs font-medium text-[#292A25] border border-[#292A25]/25 rounded-md hover:border-[#292A25] bg-[#F8F7F3] transition-colors whitespace-nowrap"
+                  >
+                    Sign In
+                  </Link>
+                )}
               </div>
             </div>
           </div>

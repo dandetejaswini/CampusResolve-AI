@@ -1,4 +1,4 @@
-import { ActorRole, RequestStatus } from '../types/domain';
+import { ActorRole, RequestStatus } from '../types/domain.js';
 import {
   AIEvidenceStatus,
   AssignmentRecord,
@@ -19,7 +19,7 @@ import {
   TicketPriorityLevel,
   TicketRecord,
   WorkspaceNotificationRecord,
-} from '../types/phase3';
+} from '../types/phase3.js';
 
 // ============================================================================
 // 1. EXACT ID FORMATTERS & VALIDATORS (Section 6)

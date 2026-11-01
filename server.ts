@@ -3,10 +3,10 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { processFirebaseClaimRequest } from './api/auth/firebase-claim.ts';
-import { processWelcomeEmailRequest } from './api/auth/welcome-email.ts';
-import { processWorkspaceOperationRequest } from './api/ops/workspace.ts';
-import { processPolicyAssistantRequest } from './api/ai/policy-assistant.ts';
+import { processFirebaseClaimRequest } from './api/auth/firebase-claim.js';
+import { processWelcomeEmailRequest } from './api/auth/welcome-email.js';
+import { processWorkspaceOperationRequest } from './api/ops/workspace.js';
+import { processPolicyAssistantRequest } from './api/ai/policy-assistant.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

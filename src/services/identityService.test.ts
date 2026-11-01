@@ -16,6 +16,8 @@ import {
   DEDICATED_GMAIL_SENDER,
 } from '../../api/auth/welcome-email';
 import { processFirebaseClaimRequest } from '../../api/auth/firebase-claim';
+import { getPublicNavigationItems } from '../components/layout/PublicNavbar';
+import { authorizedJsonFetch } from './workspaceClient';
 
 function createInMemoryProfileRepo(): ProfileRepository & {
   profiles: AppProfile[];
@@ -513,5 +515,104 @@ describe('Phase 2 Unified Identity & Google Apps Script + Gmail Welcome Email Se
       sanitizeRequestedRoleNote(ActorRole.Instructor),
       'Requested institutional role review: instructor'
     );
+  });
+
+  it('Authentication-Aware Public Navigation: shows Sign In when signed out, Open Workspace when signed in, and suppresses Sign In during loading', () => {
+    const signedOutLinks = getPublicNavigationItems('unauthenticated', false);
+    assert.deepEqual(
+      signedOutLinks.map((l) => l.label),
+      ['Home', 'About', 'Features', 'Contact', 'Sign In']
+    );
+
+    const signedInLinks = getPublicNavigationItems('authenticated', true);
+    assert.deepEqual(
+      signedInLinks.map((l) => l.label),
+      ['Home', 'About', 'Features', 'Contact', 'Open Workspace']
+    );
+    assert.equal(
+      signedInLinks.find((l) => l.label === 'Open Workspace')?.to,
+      '/workspace/dashboard'
+    );
+    assert.equal(
+      signedInLinks.some((l) => l.label === 'Sign In'),
+      false
+    );
+
+    const loadingLinks = getPublicNavigationItems('loading', false);
+    assert.deepEqual(
+      loadingLinks.map((l) => l.label),
+      ['Home', 'About', 'Features', 'Contact']
+    );
+  });
+
+  it('Workspace Synchronization Safe JSON Parsing: handles non-JSON server error text without throwing SyntaxError', async () => {
+    const mockNonJson500Fetch = (async () => {
+      return new Response(
+        'A server error has occurred\n\nFUNCTION_INVOCATION_FAILED',
+        { status: 500, headers: { 'Content-Type': 'text/plain' } }
+      );
+    }) as unknown as typeof fetch;
+
+    await assert.rejects(
+      async () => {
+        await authorizedJsonFetch(
+          '/api/ops/workspace?action=bootstrap',
+          { method: 'GET' },
+          mockNonJson500Fetch
+        );
+      },
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.equal(err instanceof SyntaxError, false);
+        assert.doesNotMatch(err.message, /Unexpected token/i);
+        assert.match(err.message, /temporary server error \(HTTP 500\)/i);
+        return true;
+      }
+    );
+  });
+
+  it('Welcome Email Clean User Notification: returns clean user-facing message on new send and suppresses banner when script reports already_sent', async () => {
+    const repo = createInMemoryProfileRepo();
+    const { profile } = await resolveOrCreateAppProfile(
+      {
+        authProvider: 'supabase_email',
+        providerSubject: '22222222-3333-4444-5555-666666666666',
+        email: 'clean.banner@university.edu',
+        emailVerified: true,
+        displayName: 'Clean Banner User',
+      },
+      repo
+    );
+
+    const mockSentFetch = (async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          requestAccepted: true,
+          appsScriptExecuted: true,
+          emailSendApiSucceeded: true,
+          inboxDeliveryGuaranteed: false,
+          senderEmail: DEDICATED_GMAIL_SENDER,
+          deliveryStatus: 'sent',
+          sentAt: '2026-10-30T12:00:00.000Z',
+          failureDetails: null,
+          message: 'Your welcome email has been sent successfully.',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }) as unknown as typeof fetch;
+
+    const sentResult = await triggerWelcomeEmailIfEligible(profile, repo, {
+      bearerToken: 'valid.jwt.token',
+      fetchFn: mockSentFetch,
+    });
+
+    assert.equal(sentResult.triggered, true);
+    assert.equal(
+      sentResult.message,
+      'Your welcome email has been sent successfully.'
+    );
+    assert.doesNotMatch(sentResult.message, /MailApp\.sendEmail/i);
+    assert.doesNotMatch(sentResult.message, /campusresolveai@gmail\.com/i);
   });
 });

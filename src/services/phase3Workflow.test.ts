@@ -354,8 +354,8 @@ describe('Phase 3 — Deterministic Dataset Generator (Seed 20261022), 13 Valida
 
 describe('Phase 3 — Multi-Actor RBAC & Permission Governance Across All 5 Roles', () => {
   it('strictly enforces role privileges and rejections across all 5 actors', async () => {
-    const { canActorPerformAction } = await import('../utils/rbac.ts');
-    const { AuthorizedAction } = await import('../types/domain.ts');
+    const { canActorPerformAction } = await import('../utils/rbac.js');
+    const { AuthorizedAction } = await import('../types/domain.js');
 
     // 1. Learner
     assert.equal(canActorPerformAction(ActorRole.Learner, AuthorizedAction.SubmitAcademicPetition), true);
@@ -392,7 +392,7 @@ describe('Phase 3 — Multi-Actor RBAC & Permission Governance Across All 5 Role
 
 describe('Phase 3 — Multi-Tenant Row-Level Isolation & Synthetic Data Shielding', () => {
   it('prevents cross-user ticket visibility while permitting authorized staff review', async () => {
-    const { isTicketAuthorizedForCaller } = await import('../../api/ops/workspace.ts');
+    const { isTicketAuthorizedForCaller } = await import('../../api/ops/workspace.js');
 
     const userA = {
       id: '11111111-1111-1111-1111-111111111111',

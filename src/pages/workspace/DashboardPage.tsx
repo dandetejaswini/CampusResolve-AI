@@ -244,7 +244,8 @@ export const DashboardPage: React.FC = () => {
             <span aria-hidden="true">·</span>
             <span>
               Requester ID:{' '}
-              {workspaceData?.requester?.requester_id || 'Provisioning...'}
+              {workspaceData?.requester?.requester_id ||
+                (isLoadingWorkspace ? 'Loading...' : 'Unavailable')}
             </span>
           </div>
           <h1 className="font-serif-display text-2xl md:text-3xl text-[#292A25] tracking-tight">

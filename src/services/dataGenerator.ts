@@ -1,4 +1,4 @@
-import { ActorRole, RequestStatus } from '../types/domain';
+import { ActorRole, RequestStatus } from '../types/domain.js';
 import {
   AnomalyScenarioType,
   AssignmentRecord,
@@ -21,7 +21,7 @@ import {
   TicketPolicyLinkRecord,
   TicketPriorityLevel,
   TicketRecord,
-} from '../types/phase3';
+} from '../types/phase3.js';
 import {
   CONFIGURABLE_SLA_RULES,
   DEFAULT_CONFIGURABLE_BUSINESS_SCHEDULE,
@@ -39,7 +39,7 @@ import {
   formatPolicyId,
   formatRequesterId,
   formatTicketId,
-} from './workflowEngine';
+} from './workflowEngine.js';
 
 export const DETERMINISTIC_SEED = 20261022;
 export const BASE_ANCHOR_DATE_ISO = '2026-09-01T08:00:00.000Z';

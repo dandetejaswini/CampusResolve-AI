@@ -1,14 +1,14 @@
-import { ActorRole, RequestStatus } from '../types/domain';
+import { ActorRole, RequestStatus } from '../types/domain.js';
 import {
   AnomalyScenarioType,
   GroundTruthAnomalyRecord,
   GroundTruthTicketEvaluationRecord,
-} from '../types/phase3';
+} from '../types/phase3.js';
 import {
   DETERMINISTIC_SEED,
   GeneratedDatasetBundle,
   generateDeterministicDataset,
-} from './dataGenerator';
+} from './dataGenerator.js';
 import {
   CONFIGURABLE_SLA_RULES,
   DEFAULT_CONFIGURABLE_BUSINESS_SCHEDULE,
@@ -27,7 +27,7 @@ import {
   retrieveApplicablePolicyEvidence,
   validateResolutionTransition,
   validateTicketAssignmentAndRouting,
-} from './workflowEngine';
+} from './workflowEngine.js';
 
 // ============================================================================
 // PURE TYPESCRIPT SHA-256 IMPLEMENTATION (BROWSER + NODE COMPATIBLE)

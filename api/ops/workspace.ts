@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { ActorRole, RequestStatus } from '../../src/types/domain';
+import { ActorRole, RequestStatus } from '../../src/types/domain.js';
 import {
   AIRetrievalLogRecord,
   AssignmentRecord,
@@ -21,7 +21,7 @@ import {
   TicketPriorityLevel,
   TicketRecord,
   WorkspaceNotificationRecord,
-} from '../../src/types/phase3';
+} from '../../src/types/phase3.js';
 import {
   CONFIGURABLE_ACADEMIC_HOLIDAY_CALENDAR_2026,
   CONFIGURABLE_SLA_RULES,
@@ -50,16 +50,16 @@ import {
   validateResolutionTransition,
   validateSlaConfiguration,
   validateTicketAssignmentAndRouting,
-} from '../../src/services/workflowEngine';
+} from '../../src/services/workflowEngine.js';
 import {
   DETERMINISTIC_SEED,
   generateDeterministicDataset,
-} from '../../src/services/dataGenerator';
+} from '../../src/services/dataGenerator.js';
 import {
   evaluateOperationalAnomaliesAgainstGroundTruth,
   runDatasetValidationSuite,
   verifyFixedSeedReproducibility,
-} from '../../src/services/validationAndEvaluationEngine';
+} from '../../src/services/validationAndEvaluationEngine.js';
 
 export interface VerifiedCallerIdentity {
   id: string;
@@ -494,6 +494,9 @@ async function getOrProvisionRemoteRequester(
   client: SupabaseClient,
   profile: VerifiedCallerIdentity
 ): Promise<RequesterRecord> {
+  const adminClient = createServiceRoleSupabaseClient();
+  const rwClient = adminClient || client;
+
   const { data: existing, error: selectErr } = await client
     .from('requesters')
     .select('*')
@@ -501,27 +504,38 @@ async function getOrProvisionRemoteRequester(
     .limit(1)
     .maybeSingle();
 
-  if (selectErr) {
+  if (selectErr && !adminClient) {
     throw new Error(
-      `Failed querying public.requesters in remote PostgreSQL (${selectErr.code}): ${selectErr.message}`
+      `Unable to load your requester profile (${selectErr.code}): ${selectErr.message}`
     );
+  }
+
+  let matchedExisting = existing;
+  if (!matchedExisting && adminClient) {
+    const { data: adminExisting } = await adminClient
+      .from('requesters')
+      .select('*')
+      .eq('app_profile_id', profile.id)
+      .limit(1)
+      .maybeSingle();
+    matchedExisting = adminExisting;
   }
 
   const nowIso = new Date().toISOString();
 
-  if (existing) {
+  if (matchedExisting) {
     if (
-      existing.display_name !== profile.display_name ||
-      existing.department !== profile.department
+      matchedExisting.display_name !== profile.display_name ||
+      matchedExisting.department !== profile.department
     ) {
-      const { data: updated, error: updateErr } = await client
+      const { data: updated, error: updateErr } = await rwClient
         .from('requesters')
         .update({
           display_name: profile.display_name,
           department: profile.department,
           updated_at: nowIso,
         })
-        .eq('requester_id', existing.requester_id)
+        .eq('requester_id', matchedExisting.requester_id)
         .select('*')
         .single();
 
@@ -533,8 +547,8 @@ async function getOrProvisionRemoteRequester(
       }
     }
     return {
-      ...(existing as RequesterRecord),
-      primary_term_id: existing.primary_term_id || 'TERM-2026-FALL',
+      ...(matchedExisting as RequesterRecord),
+      primary_term_id: matchedExisting.primary_term_id || 'TERM-2026-FALL',
     };
   }
 
@@ -550,12 +564,33 @@ async function getOrProvisionRemoteRequester(
     [ActorRole.PlatformAdministrator]: 'ROLE-PLATFORM_ADMIN',
   };
 
-  const dbTermId = await resolveDefaultDatabaseTermId(client);
+  const targetRoleId = roleMap[profile.actor_role] || 'ROLE-LEARNER';
+
+  // Ensure canonical role exists if service-role client is available so FK on role_id never fails
+  if (adminClient) {
+    const { data: roleRow } = await adminClient
+      .from('roles')
+      .select('role_id')
+      .eq('role_id', targetRoleId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!roleRow) {
+      const bundle = generateDeterministicDataset({ seed: DETERMINISTIC_SEED });
+      if (bundle.roles.length > 0) {
+        await adminClient
+          .from('roles')
+          .upsert(bundle.roles, { onConflict: 'role_id' });
+      }
+    }
+  }
+
+  const dbTermId = await resolveDefaultDatabaseTermId(rwClient);
 
   const dbRowToInsert = {
     requester_id: `REQ-USR-${cleanHash}`,
     app_profile_id: profile.id,
-    role_id: roleMap[profile.actor_role] || 'ROLE-LEARNER',
+    role_id: targetRoleId,
     primary_term_id: dbTermId,
     verified_email: profile.verified_email.toLowerCase(),
     display_name: profile.display_name,
@@ -575,16 +610,32 @@ async function getOrProvisionRemoteRequester(
     .select('*')
     .single();
 
-  if (insertErr || !inserted) {
-    throw new Error(
-      `Failed inserting requester record into public.requesters (${insertErr?.code}): ${insertErr?.message}`
-    );
+  if (!insertErr && inserted) {
+    return {
+      ...(inserted as RequesterRecord),
+      primary_term_id: inserted.primary_term_id || 'TERM-2026-FALL',
+    };
   }
 
-  return {
-    ...(inserted as RequesterRecord),
-    primary_term_id: inserted.primary_term_id || 'TERM-2026-FALL',
-  };
+  // Fallback via serviceRoleClient or upsert if RLS or duplicate requester_id occurred
+  if (adminClient) {
+    const { data: upserted, error: upsertErr } = await adminClient
+      .from('requesters')
+      .upsert(dbRowToInsert, { onConflict: 'requester_id' })
+      .select('*')
+      .single();
+
+    if (!upsertErr && upserted) {
+      return {
+        ...(upserted as RequesterRecord),
+        primary_term_id: upserted.primary_term_id || 'TERM-2026-FALL',
+      };
+    }
+  }
+
+  throw new Error(
+    `Unable to provision requester record (${insertErr?.code || 'DB_ERR'}): ${insertErr?.message || 'Unknown database error'}`
+  );
 }
 
 export function isTicketAuthorizedForCaller(
@@ -3330,20 +3381,31 @@ export async function processWorkspaceOperationRequest(
 }
 
 export default async function handler(req: any, res: any) {
-  let parsedBody = req.body;
-  if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
-    try {
-      parsedBody = JSON.parse(parsedBody);
-    } catch {
-      parsedBody = undefined;
+  try {
+    let parsedBody = req.body;
+    if (typeof parsedBody === 'string' && parsedBody.trim().length > 0) {
+      try {
+        parsedBody = JSON.parse(parsedBody);
+      } catch {
+        parsedBody = undefined;
+      }
     }
+    const result = await processWorkspaceOperationRequest(
+      req.method,
+      req.query || {},
+      parsedBody,
+      req.headers || {}
+    );
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      code: 'SERVER_ERROR',
+      message:
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while processing the workspace request.',
+    });
   }
-  const result = await processWorkspaceOperationRequest(
-    req.method,
-    req.query || {},
-    parsedBody,
-    req.headers || {}
-  );
-  res.status(result.status).json(result.body);
 }
 

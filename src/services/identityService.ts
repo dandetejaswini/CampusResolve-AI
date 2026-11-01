@@ -423,6 +423,19 @@ export async function triggerWelcomeEmailIfEligible(
         sentAtIso
       );
 
+      if (deliveryStatusRaw === 'already_sent') {
+        return {
+          triggered: false,
+          requestAccepted,
+          appsScriptExecuted,
+          emailSendApiSucceeded: true,
+          inboxDeliveryGuaranteed: false,
+          reason: 'already_sent',
+          message: 'Welcome email was already sent for this account.',
+          updatedProfile,
+        };
+      }
+
       return {
         triggered: true,
         requestAccepted,
@@ -430,9 +443,7 @@ export async function triggerWelcomeEmailIfEligible(
         emailSendApiSucceeded: true,
         inboxDeliveryGuaranteed: false,
         reason: 'sent',
-        message:
-          data?.message ||
-          `Welcome email send API succeeded via Google Apps Script (campusresolveai@gmail.com) to ${profile.verified_email}.`,
+        message: 'Your welcome email has been sent successfully.',
         updatedProfile,
       };
     }
@@ -535,7 +546,7 @@ export function createSupabaseProfileRepository(
         ) {
           throw new IdentityResolutionError(
             'DATABASE_ERROR',
-            `Failed to query profile by provider identity: ${error.message} (Database migration required: execute /supabase/migrations/20261030000001_phase2_auth_profiles_and_rls.sql in the Supabase SQL Editor for project llotsqzeppiltosllxvx).`
+            'The institutional profile directory is temporarily unavailable while database setup completes. Please contact your platform administrator.'
           );
         }
         if (
@@ -544,12 +555,12 @@ export function createSupabaseProfileRepository(
         ) {
           throw new IdentityResolutionError(
             'DATABASE_ERROR',
-            `Failed to query profile by provider identity: ${error.message} (Supabase Third-Party Auth required: enable Firebase Auth for project 'campusresolveai' in Supabase Dashboard -> Authentication -> Third-Party Auth).`
+            'Unable to verify third-party authentication session with the institutional directory.'
           );
         }
         throw new IdentityResolutionError(
           'DATABASE_ERROR',
-          `Failed to query profile by provider identity: ${error.message}`
+          'Unable to verify your institutional profile at this time. Please try again.'
         );
       }
 

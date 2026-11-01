@@ -80,12 +80,59 @@ export const SettingsPage: React.FC = () => {
     activeRole === ActorRole.PlatformAdministrator ||
     activeRole === ActorRole.SupportStaff;
 
-  const [emailDigestCadence, setEmailDigestCadence] = useState('immediate');
-  const [notifyStageTransitions, setNotifyStageTransitions] = useState(true);
-  const [notifyPolicyCitations, setNotifyPolicyCitations] = useState(true);
-  const [routingMode, setRoutingMode] = useState('category-based');
-  const [strictCitationEnforcement, setStrictCitationEnforcement] =
-    useState(true);
+  const SETTINGS_STORAGE_KEY = 'campusresolve_workspace_preferences_v1';
+
+  const loadInitialPrefs = () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            emailDigestCadence: parsed.emailDigestCadence || 'immediate',
+            notifyStageTransitions:
+              typeof parsed.notifyStageTransitions === 'boolean'
+                ? parsed.notifyStageTransitions
+                : true,
+            notifyPolicyCitations:
+              typeof parsed.notifyPolicyCitations === 'boolean'
+                ? parsed.notifyPolicyCitations
+                : true,
+            routingMode: parsed.routingMode || 'category-based',
+            strictCitationEnforcement:
+              typeof parsed.strictCitationEnforcement === 'boolean'
+                ? parsed.strictCitationEnforcement
+                : true,
+          };
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    return {
+      emailDigestCadence: 'immediate',
+      notifyStageTransitions: true,
+      notifyPolicyCitations: true,
+      routingMode: 'category-based',
+      strictCitationEnforcement: true,
+    };
+  };
+
+  const initialPrefs = useMemo(loadInitialPrefs, []);
+
+  const [emailDigestCadence, setEmailDigestCadence] = useState(
+    initialPrefs.emailDigestCadence
+  );
+  const [notifyStageTransitions, setNotifyStageTransitions] = useState(
+    initialPrefs.notifyStageTransitions
+  );
+  const [notifyPolicyCitations, setNotifyPolicyCitations] = useState(
+    initialPrefs.notifyPolicyCitations
+  );
+  const [routingMode, setRoutingMode] = useState(initialPrefs.routingMode);
+  const [strictCitationEnforcement, setStrictCitationEnforcement] = useState(
+    initialPrefs.strictCitationEnforcement
+  );
 
   const [savedNotice, setSavedNotice] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
@@ -141,6 +188,22 @@ export const SettingsPage: React.FC = () => {
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(
+          SETTINGS_STORAGE_KEY,
+          JSON.stringify({
+            emailDigestCadence,
+            notifyStageTransitions,
+            notifyPolicyCitations,
+            routingMode,
+            strictCitationEnforcement,
+          })
+        );
+      }
+    } catch {
+      // Ignore storage errors
+    }
     setSavedNotice(true);
   };
 
@@ -150,6 +213,13 @@ export const SettingsPage: React.FC = () => {
     setNotifyPolicyCitations(true);
     setRoutingMode('category-based');
     setStrictCitationEnforcement(true);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage errors
+    }
     setSavedNotice(false);
     setResetDialogOpen(false);
   };

@@ -600,10 +600,28 @@ export const AIAssistantPage: React.FC = () => {
 
               {/* Structured Grounded Answer & Explanation */}
               <div className="flex flex-col gap-3">
-                <div className="rounded-md bg-[#F8F7F3] border border-[#292A25]/12 p-5 flex flex-col gap-2">
-                  <div className="text-[11px] font-mono uppercase tracking-wider text-[#777B63] font-semibold">
-                    Policy-Grounded Answer
+                <div className="rounded-md bg-[#F8F7F3] border border-[#292A25]/12 p-5 flex flex-col gap-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-[11px] font-mono uppercase tracking-wider text-[#777B63] font-semibold">
+                      Policy-Grounded Answer
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                        activeResult.synthesisMode === 'gemini_api'
+                          ? 'bg-[#4A5D46]/15 text-[#4A5D46]'
+                          : 'bg-[#B5A58D]/30 text-[#292A25]/80'
+                      }`}
+                    >
+                      {activeResult.synthesisMode === 'gemini_api'
+                        ? 'Live Gemini AI Synthesis'
+                        : 'Rule-Based Policy Summary (Live AI Unavailable)'}
+                    </span>
                   </div>
+                  {activeResult.synthesisMode === 'deterministic_fallback' && (
+                    <div className="rounded border border-[#B5A58D]/50 bg-[#E8E4DC]/55 px-3 py-2 text-xs text-[#292A25]/80">
+                      Live Gemini AI synthesis is currently unavailable or not configured; displaying a deterministic summary compiled directly from matching institutional policy documents.
+                    </div>
+                  )}
                   <div className="text-sm text-[#292A25] leading-relaxed whitespace-pre-line">
                     {activeResult.generatedResponse}
                   </div>

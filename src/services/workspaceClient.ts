@@ -114,31 +114,55 @@ export async function resolveActiveBearerToken(): Promise<string | null> {
   return null;
 }
 
-async function authorizedJsonFetch<T>(
+export async function authorizedJsonFetch<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  customFetch?: typeof fetch
 ): Promise<T> {
-  const token = await resolveActiveBearerToken();
+  const token = customFetch ? null : await resolveActiveBearerToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   };
 
-  if (token) {
+  if (token && !headers['Authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, {
+  const fetchImpl = customFetch || fetch;
+  const res = await fetchImpl(url, {
     ...options,
     headers,
   });
 
-  const data = await res.json();
+  const rawText = await res.text();
+  let data: any = null;
+
+  if (rawText && rawText.trim().length > 0) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      throw new Error(
+        res.ok
+          ? 'The server returned an unreadable response format. Please retry synchronization.'
+          : `The workspace service encountered a temporary server error (HTTP ${res.status}). Please retry synchronization.`
+      );
+    }
+  }
+
   if (!res.ok || data?.ok === false) {
     throw new Error(
-      data?.message || `Workspace API error (HTTP ${res.status})`
+      data?.message ||
+        `Unable to complete workspace request (HTTP ${res.status}). Please try again.`
     );
   }
+
+  if (!data) {
+    throw new Error(
+      'The workspace service returned an empty response. Please retry synchronization.'
+    );
+  }
+
   return data as T;
 }
 

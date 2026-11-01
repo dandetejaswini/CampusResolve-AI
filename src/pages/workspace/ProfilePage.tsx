@@ -94,8 +94,8 @@ export const ProfilePage: React.FC = () => {
                   <Lock className="w-3.5 h-3.5 text-[#777B63]" aria-hidden="true" />
                   <span>Protected Identity Record (Read-Only)</span>
                 </div>
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#E8E4DC] text-[#292A25]">
-                  {profile.account_status}
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#E8E4DC] text-[#292A25] capitalize">
+                  {profile.account_status || 'active'}
                 </span>
               </div>
 
@@ -117,9 +117,9 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-0.5">
-                  <dt className="text-[#292A25]/60">Account Identifier</dt>
-                  <dd className="font-mono text-[11px] text-[#292A25]/85 break-all">
-                    {profile.provider_subject}
+                  <dt className="text-[#292A25]/60">Account Status</dt>
+                  <dd className="font-semibold text-[#4A5D46] capitalize">
+                    {profile.account_status || 'Active'}
                   </dd>
                 </div>
 
@@ -128,7 +128,7 @@ export const ProfilePage: React.FC = () => {
                     Assigned Institutional Role
                   </dt>
                   <dd className="font-semibold text-[#777B63]">
-                    {authoritativeRoleMeta.label} ({profile.actor_role})
+                    {authoritativeRoleMeta.label}
                   </dd>
                 </div>
 

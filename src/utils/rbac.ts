@@ -4,7 +4,7 @@ import {
   AuthorizedAction,
   NavItemConfig,
   WorkspaceSection,
-} from '../types/domain';
+} from '../types/domain.js';
 
 export const ACTOR_METADATA: Record<ActorRole, ActorMetadata> = {
   [ActorRole.Learner]: {

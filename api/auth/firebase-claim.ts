@@ -25,12 +25,17 @@ function getFirebaseAdminApp(): App | null {
     return existing[0];
   }
 
-  const projectId =
+  const projectId = (
     process.env.FIREBASE_ADMIN_PROJECT_ID ||
     process.env.VITE_FIREBASE_PROJECT_ID ||
-    EXPECTED_FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const rawPrivateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+    EXPECTED_FIREBASE_PROJECT_ID
+  ).trim();
+  const clientEmail = (process.env.FIREBASE_ADMIN_CLIENT_EMAIL || '')
+    .trim()
+    .replace(/^["']|["']$/g, '');
+  const rawPrivateKey = (process.env.FIREBASE_ADMIN_PRIVATE_KEY || '')
+    .trim()
+    .replace(/^["']|["']$/g, '');
 
   if (!clientEmail || !rawPrivateKey || rawPrivateKey.includes('YOUR_PRIVATE_KEY')) {
     return null;
@@ -181,9 +186,20 @@ export async function processFirebaseClaimRequest(
 
 // Vercel Serverless Function Default Handler
 export default async function handler(req: any, res: any) {
-  const result = await processFirebaseClaimRequest({
-    method: req.method,
-    headers: req.headers || {},
-  });
-  res.status(result.status).json(result.body);
+  try {
+    const result = await processFirebaseClaimRequest({
+      method: req.method,
+      headers: req.headers || {},
+    });
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      code: 'SERVER_ERROR',
+      message:
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while verifying authentication claims.',
+    });
+  }
 }
