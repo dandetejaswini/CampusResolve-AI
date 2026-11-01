@@ -10,13 +10,14 @@
 ## 1. Architectural & Timestamp Standards
 
 ### 1.1 Timestamp Convention (ISO 8601 with Explicit Timezone Offset)
-All timestamp fields throughout the database, synthetic generation engine, and REST/WebSocket APIs adhere to strict ISO 8601 format with an explicit institutional offset:
-- **Format:** `YYYY-MM-DDTHH:mm:ss+05:30`
-- **Example:** `2026-09-01T13:30:00+05:30`
-- **Rule:** Unqualified local timestamps without timezone offsets are prohibited. Date arithmetic and business-hour calculations (09:00–17:00 IST Monday through Friday, excluding institutional holidays) normalize all inputs through epoch milliseconds while preserving the explicit offset in persisted records.
+- **Standard Format**: `YYYY-MM-DDTHH:mm:ss+05:30` (strict ISO 8601 with explicit institutional offset).
+- **Example**: `2026-09-01T13:30:00+05:30`
+- **Enforcement Rule**: Unqualified local timestamps without timezone offsets are prohibited.
+- **Business Schedule**: 09:00–17:00 IST Monday through Friday, excluding academic holidays.
+- **Arithmetic Normalization**: Normalized through epoch milliseconds while preserving the explicit offset.
 
 ### 1.2 Identifier Formats & RegEx Validation Rules
-Every primary key follows an exact, human-readable format designed for deterministic sequence tracking and cross-table validation:
+- **Design Standard**: Every primary key follows an exact, human-readable format designed for deterministic sequence tracking:
 
 | Entity | ID Format Pattern | RegEx Validation Pattern | Example |
 |---|---|---|---|
@@ -41,7 +42,7 @@ Every primary key follows an exact, human-readable format designed for determini
 ## 2. Complete Field Specifications for All 11 Required Entities
 
 ### 2.1 Entity: Requester (`requesters`)
-Represents an academic institutional actor (learner, instructor, researcher) who submits inquiries and petitions into the system.
+- **Entity Scope**: Academic institutional actors (learner, instructor, researcher) submitting inquiries into the platform.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -63,7 +64,7 @@ Represents an academic institutional actor (learner, instructor, researcher) who
 ---
 
 ### 2.2 Entity: Role (`roles`)
-Defines the five institutional actor privileges, role-based access control (RBAC) scopes, and assignment capabilities.
+- **Entity Scope**: Five institutional actor privileges, role-based access control (RBAC) scopes, and assignment capabilities.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -83,7 +84,7 @@ Defines the five institutional actor privileges, role-based access control (RBAC
 ---
 
 ### 2.3 Entity: Term (`terms`)
-Defines the institutional academic calendar semesters, add/drop cutoffs, withdrawal deadlines, and aid disbursement milestones.
+- **Entity Scope**: Institutional academic calendar semesters, add/drop cutoffs, withdrawal deadlines, and aid disbursement milestones.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -102,7 +103,7 @@ Defines the institutional academic calendar semesters, add/drop cutoffs, withdra
 ---
 
 ### 2.4 Entity: PolicyDocument (`policy_documents`)
-Stores authoritative institutional policy documents across all four domains, governing versions, and supersession lineages.
+- **Entity Scope**: Authoritative institutional policy documents across all four domains, governing versions, and supersession lineages.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -135,7 +136,7 @@ Stores authoritative institutional policy documents across all four domains, gov
 ---
 
 ### 2.5 Entity: KnowledgeArticle (`knowledge_articles`)
-Operational step-by-step guidance articles linked to governing PolicyDocuments.
+- **Entity Scope**: Operational step-by-step guidance articles linked to governing PolicyDocuments.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -165,7 +166,7 @@ Operational step-by-step guidance articles linked to governing PolicyDocuments.
 ---
 
 ### 2.6 Entity: Ticket (`tickets`)
-The core transactional ledger entry recording student requests, classifications, current teams, lifecycle states, and escalation status.
+- **Entity Scope**: Core transactional ledger entry recording student requests, classifications, current teams, lifecycle states, and escalation status.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -198,7 +199,7 @@ The core transactional ledger entry recording student requests, classifications,
 ---
 
 ### 2.7 Entity: Message (`messages`)
-Records conversational turns between requesters, operational staff, and AI assistants.
+- **Entity Scope**: Conversational turns between requesters, operational staff, and AI assistants.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -221,7 +222,7 @@ Records conversational turns between requesters, operational staff, and AI assis
 ---
 
 ### 2.8 Entity: Category (`categories`)
-Defines the official four institutional service domains, primary teams, and routing configuration.
+- **Entity Scope**: Four official institutional service domains, primary teams, and routing configuration.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -245,7 +246,7 @@ Defines the official four institutional service domains, primary teams, and rout
 ---
 
 ### 2.9 Entity: Assignment (`assignments`)
-Maintains the complete, immutable audit trail of ticket assignments, reassignments, and queue handoffs.
+- **Entity Scope**: Complete, immutable audit trail of ticket assignments, reassignments, and queue handoffs.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -267,7 +268,7 @@ Maintains the complete, immutable audit trail of ticket assignments, reassignmen
 ---
 
 ### 2.10 Entity: SLA (`slas`)
-Calculates institutional service level agreements using institutional business hours (09:00–17:00 IST), holiday calendar exclusion, and breach tracking.
+- **Entity Scope**: Institutional service level agreements calculated using institutional business hours (09:00–17:00 IST), holiday calendar exclusion, and breach tracking.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -293,7 +294,7 @@ Calculates institutional service level agreements using institutional business h
 ---
 
 ### 2.11 Entity: ResolutionFeedback (`resolution_feedbacks`)
-Contains voluntary student feedback, resolution satisfaction ratings, and policy clarity scores.
+- **Entity Scope**: Voluntary student feedback, resolution satisfaction ratings, and policy clarity scores.
 
 | Field Name | Data Type | Req/Opt | Allowed Values | Units | Constraint | PK/FK | Referenced Entity & Field | Validation Rule | Description | Default Value |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -312,7 +313,7 @@ Contains voluntary student feedback, resolution satisfaction ratings, and policy
 ## 3. Bridge Tables & Governance Audit Entities
 
 ### 3.1 Bridge Table: PolicyArticleLink (`policy_article_links`)
-Represents the N:M bridge connecting authoritative PolicyDocuments with operational KnowledgeArticles.
+- **Entity Scope**: N:M bridge connecting authoritative PolicyDocuments with operational KnowledgeArticles.
 
 | Field Name | Data Type | Req/Opt | Description | Reference / Constraint |
 |---|---|---|---|---|
@@ -325,7 +326,7 @@ Represents the N:M bridge connecting authoritative PolicyDocuments with operatio
 | `created_at` | `VARCHAR(32)` | Required | Ingestion timestamp (`+05:30`) | ISO 8601 Timestamp |
 
 ### 3.2 Bridge Table: TicketPolicyLink (`ticket_policy_links`)
-Represents the N:M bridge tracking all PolicyDocuments evaluated, verified, or cited during ticket triage.
+- **Entity Scope**: N:M bridge tracking all PolicyDocuments evaluated, verified, or cited during ticket triage.
 
 | Field Name | Data Type | Req/Opt | Description | Reference / Constraint |
 |---|---|---|---|---|
@@ -338,7 +339,7 @@ Represents the N:M bridge tracking all PolicyDocuments evaluated, verified, or c
 | `linked_at` | `VARCHAR(32)` | Required | Citation timestamp (`+05:30`) | ISO 8601 Timestamp |
 
 ### 3.3 Bridge Table: TicketArticleLink (`ticket_article_links`)
-Represents the N:M bridge tracking all KnowledgeArticles consulted or delivered to students on ticket threads.
+- **Entity Scope**: N:M bridge tracking all KnowledgeArticles consulted or delivered to students on ticket threads.
 
 | Field Name | Data Type | Req/Opt | Description | Reference / Constraint |
 |---|---|---|---|---|
@@ -351,7 +352,7 @@ Represents the N:M bridge tracking all KnowledgeArticles consulted or delivered 
 | `linked_at` | `VARCHAR(32)` | Required | Linking timestamp (`+05:30`) | ISO 8601 Timestamp |
 
 ### 3.4 Immutable Audit Entity: TicketLifecycleEvent (`ticket_lifecycle_events`)
-Records immutable state transitions in the ticket workflow directed acyclic graph (DAG).
+- **Entity Scope**: Immutable state transitions in the ticket workflow directed acyclic graph (DAG).
 
 | Field Name | Data Type | Req/Opt | Description | Reference / Constraint |
 |---|---|---|---|---|
