@@ -30,6 +30,7 @@ export const KnowledgeBasePage: React.FC = () => {
     dataState,
     setDataState,
     workspaceData,
+    setWorkspaceData,
     refreshWorkspaceData: refreshWorkspace,
   } = useWorkspaceContext();
   const navigate = useNavigate();
@@ -139,14 +140,28 @@ export const KnowledgeBasePage: React.FC = () => {
     setPublishing(true);
     setPublishError(null);
     try {
-      await publishPolicyDocument({
+      const res = await publishPolicyDocument({
         domain: newDomainCode,
         title: newTitle.trim(),
         version: newVersion.trim() || '1.0',
         effectiveDate: newEffectiveDate,
         summary: newSummary.trim(),
-        content: (newContent.trim() || newSummary.trim()),
+        content: newContent.trim() || newSummary.trim(),
       });
+      if (res && res.policy && res.article) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            knowledgeBase: {
+              ...prev.knowledgeBase,
+              policies: [res.policy, ...prev.knowledgeBase.policies],
+              articles: [res.article, ...prev.knowledgeBase.articles],
+              totalArticlesCount: prev.knowledgeBase.totalArticlesCount + 1,
+            },
+          };
+        });
+      }
       refreshWorkspace({
         kbPage,
         kbDomain: domainFilter,

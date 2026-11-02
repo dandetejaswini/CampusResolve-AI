@@ -12,6 +12,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
+import { useAuth } from '../../context/AuthContext';
 import {
   AuthorizedAction,
   RequestStatus,
@@ -59,9 +60,11 @@ export const MyRequestsPage: React.FC = () => {
     dataState,
     setDataState,
     workspaceData,
+    setWorkspaceData,
     isLoadingWorkspace,
     refreshWorkspaceData,
   } = useWorkspaceContext();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const actorMeta = getActorMetadata(activeRole);
 
@@ -309,9 +312,39 @@ export const MyRequestsPage: React.FC = () => {
     setIsEvaluatingSla(true);
     setActionBanner(null);
     try {
-      const res = await evaluateTicketSlaAndEscalation({
-        ticketId: activeTicket.ticket_id,
-      });
+      const res = await evaluateTicketSlaAndEscalation(
+        {
+          ticketId: activeTicket.ticket_id,
+        },
+        profile
+      );
+      if (res && res.ok) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          const updatedTickets = prev.tickets.map((t) =>
+            t.ticket_id === res.ticket.ticket_id ? res.ticket : t
+          );
+          const updatedSlas = prev.slas.map((s) =>
+            s.ticket_id === res.sla.ticket_id ? res.sla : s
+          );
+          if (!prev.slas.some((s) => s.ticket_id === res.sla.ticket_id)) {
+            updatedSlas.unshift(res.sla);
+          }
+          const updatedNotifications = res.notification
+            ? [res.notification, ...prev.notifications]
+            : prev.notifications;
+          const updatedEvents = res.lifecycleEvent
+            ? [res.lifecycleEvent, ...prev.lifecycleEvents]
+            : prev.lifecycleEvents;
+          return {
+            ...prev,
+            tickets: updatedTickets,
+            slas: updatedSlas,
+            notifications: updatedNotifications,
+            lifecycleEvents: updatedEvents,
+          };
+        });
+      }
       refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
@@ -345,17 +378,42 @@ export const MyRequestsPage: React.FC = () => {
     setIsTransitioning(true);
     setActionBanner(null);
     try {
-      await transitionOperationalTicket({
-        ticketId: activeTicket.ticket_id,
-        newState: targetState,
-        reason: transitionReason.trim(),
-        resolutionSummary:
-          targetState === RequestStatus.Resolved
-            ? transitionReason.trim()
-            : undefined,
-      });
+      const res = await transitionOperationalTicket(
+        {
+          ticketId: activeTicket.ticket_id,
+          newState: targetState,
+          reason: transitionReason.trim(),
+          resolutionSummary:
+            targetState === RequestStatus.Resolved
+              ? transitionReason.trim()
+              : undefined,
+        },
+        profile
+      );
       setTransitionReason('');
       setTargetState('');
+      if (res && res.ok) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            tickets: prev.tickets.map((t) =>
+              t.ticket_id === res.ticket.ticket_id ? res.ticket : t
+            ),
+            lifecycleEvents: res.event
+              ? [res.event, ...prev.lifecycleEvents]
+              : prev.lifecycleEvents,
+            messages: res.messageRecord
+              ? [...prev.messages, res.messageRecord]
+              : prev.messages,
+            slas: res.sla
+              ? prev.slas.map((s) =>
+                  s.ticket_id === res.sla!.ticket_id ? res.sla! : s
+                )
+              : prev.slas,
+          };
+        });
+      }
       refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
@@ -391,13 +449,33 @@ export const MyRequestsPage: React.FC = () => {
     setIsReassigning(true);
     setActionBanner(null);
     try {
-      const res = await reassignOperationalTicket({
-        ticketId: activeTicket.ticket_id,
-        targetTeam: reassignTargetTeam,
-        reason: reassignReason.trim(),
-      });
+      const res = await reassignOperationalTicket(
+        {
+          ticketId: activeTicket.ticket_id,
+          targetTeam: reassignTargetTeam,
+          reason: reassignReason.trim(),
+        },
+        profile
+      );
       setReassignReason('');
       setReassignTargetTeam('');
+      if (res && res.ok) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            tickets: prev.tickets.map((t) =>
+              t.ticket_id === res.ticket.ticket_id ? res.ticket : t
+            ),
+            assignments: res.assignment
+              ? [res.assignment, ...prev.assignments]
+              : prev.assignments,
+            messages: res.messageRecord
+              ? [...prev.messages, res.messageRecord]
+              : prev.messages,
+          };
+        });
+      }
       refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,
@@ -421,14 +499,26 @@ export const MyRequestsPage: React.FC = () => {
     setIsSubmittingFeedback(true);
     setActionBanner(null);
     try {
-      const res = await submitTicketFeedback({
-        ticketId: activeTicket.ticket_id,
-        rating: feedbackRating,
-        policyClarityScore: clarityScore,
-        wasHelpful,
-        resolutionAccepted,
-        comments: feedbackComments,
-      });
+      const res = await submitTicketFeedback(
+        {
+          ticketId: activeTicket.ticket_id,
+          rating: feedbackRating,
+          policyClarityScore: clarityScore,
+          wasHelpful,
+          resolutionAccepted,
+          comments: feedbackComments,
+        },
+        profile
+      );
+      if (res && res.ok) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            resolutionFeedbacks: [res.feedback, ...prev.resolutionFeedbacks],
+          };
+        });
+      }
       refreshWorkspaceData().catch(() => {});
       setActionBanner({
         ok: true,

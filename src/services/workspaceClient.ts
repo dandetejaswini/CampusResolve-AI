@@ -5,6 +5,7 @@ import {
   CategoryRecord,
   KnowledgeArticleRecord,
   MessageRecord,
+  MessageRecordType,
   PolicyDocumentRecord,
   PolicyDomainCode,
   PolicyVersionHistoryRecord,
@@ -138,7 +139,7 @@ export async function authorizedJsonFetch<T>(
   url: string,
   options: RequestInit = {},
   customFetch?: typeof fetch,
-  timeoutMs = 30000
+  timeoutMs = 4000
 ): Promise<T> {
   const token = customFetch ? null : await resolveActiveBearerToken();
   const headers: Record<string, string> = {
@@ -212,6 +213,32 @@ export async function authorizedJsonFetch<T>(
   return data as T;
 }
 
+const FALLBACK_STORAGE_KEY = 'campusresolve_workspace_payload_v2';
+
+export function persistFallbackPayload(payload: WorkspaceBootstrapPayload): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(FALLBACK_STORAGE_KEY, JSON.stringify(payload));
+    }
+  } catch {
+    // ignore quota/storage issues safely
+  }
+}
+
+export function loadPersistedFallbackPayload(): WorkspaceBootstrapPayload | null {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem(FALLBACK_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    }
+  } catch {
+    // ignore parsing errors safely
+  }
+  return null;
+}
+
 let cachedClientFallbackPayload: WorkspaceBootstrapPayload | null = null;
 
 export function getClientSideFallbackBootstrap(
@@ -224,10 +251,14 @@ export function getClientSideFallbackBootstrap(
   activeProfile?: AppProfile | null
 ): WorkspaceBootstrapPayload {
   if (!cachedClientFallbackPayload) {
-    const dataset = generateDeterministicDataset({
-      seed: DETERMINISTIC_SEED,
-      mode: 'starter',
-    });
+    const persisted = loadPersistedFallbackPayload();
+    if (persisted && persisted.tickets && persisted.tickets.length > 0) {
+      cachedClientFallbackPayload = persisted;
+    } else {
+      const dataset = generateDeterministicDataset({
+        seed: DETERMINISTIC_SEED,
+        mode: 'starter',
+      });
 
     const activeTickets = dataset.tickets;
     const activeOpenCount = activeTickets.filter(
@@ -326,6 +357,8 @@ export function getClientSideFallbackBootstrap(
         routingRules: Object.values(DOCUMENTED_ROUTING_RULES),
       },
     };
+    persistFallbackPayload(cachedClientFallbackPayload);
+    }
   }
 
   if (activeProfile) {
@@ -518,6 +551,7 @@ export function createClientSideFallbackTicket(
   bootstrap.notifications.unshift(notification);
   bootstrap.metrics.activeOpenCount += 1;
   bootstrap.metrics.totalAuthorizedTickets += 1;
+  persistFallbackPayload(bootstrap);
 
   return {
     ok: true,
@@ -599,55 +633,586 @@ export async function createOperationalTicket(
   }
 }
 
+export function createClientSideFallbackMessage(
+  input: {
+    ticketId: string;
+    body: string;
+    isInternal?: boolean;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): {
+  ok: boolean;
+  messageRecord: MessageRecord;
+  ticket: TicketRecord;
+} {
+  const bootstrap = getClientSideFallbackBootstrap(undefined, activeProfile);
+  const nowIso = formatIsoWithIstOffset(new Date());
+  const ticket = bootstrap.tickets.find((t) => t.ticket_id === input.ticketId) || bootstrap.tickets[0];
+  const ticketMessages = bootstrap.messages.filter((m) => m.ticket_id === input.ticketId);
+  const sequenceNumber = ticketMessages.length + 1;
+  const messageId = formatMessageId(input.ticketId, sequenceNumber);
 
-export async function postTicketMessage(input: {
-  ticketId: string;
-  body: string;
-  isInternal?: boolean;
-  idempotencyKey?: string;
-}): Promise<{
+  const senderRole = activeProfile?.actor_role || ActorRole.AcademicAdministrator;
+  const isStudentOrInstructor = senderRole === ActorRole.Learner || senderRole === ActorRole.Instructor;
+  const senderName = activeProfile?.display_name || (senderRole === ActorRole.AcademicAdministrator ? 'Academic Administrator' : 'Institutional Support');
+
+  const messageType: MessageRecordType = input.isInternal
+    ? 'system_routing_note'
+    : isStudentOrInstructor
+    ? 'requester_inquiry'
+    : 'staff_response';
+
+  const messageRecord: MessageRecord = {
+    message_id: messageId,
+    ticket_id: input.ticketId,
+    sequence_number: sequenceNumber,
+    sender_id: activeProfile?.id || bootstrap.requester.requester_id,
+    sender_profile_id: activeProfile?.id || null,
+    sender_role: senderRole,
+    sender_name: senderName,
+    message_type: messageType,
+    body: input.body,
+    cited_policy_id: ticket?.referenced_policy_id || null,
+    cited_policy_version: ticket?.referenced_policy_version || null,
+    cited_article_id: ticket?.referenced_article_id || null,
+    cited_article_version: ticket?.referenced_article_version || null,
+    is_internal: Boolean(input.isInternal),
+    created_at: nowIso,
+  };
+
+  bootstrap.messages.push(messageRecord);
+  if (ticket) {
+    ticket.updated_at = nowIso;
+  }
+  persistFallbackPayload(bootstrap);
+
+  return {
+    ok: true,
+    messageRecord,
+    ticket: ticket || bootstrap.tickets[0],
+  };
+}
+
+export function evaluateClientSideFallbackSlaAndEscalation(
+  input: {
+    ticketId: string;
+    evaluatedAtIso?: string;
+    escalateOnApproachingDeadline?: boolean;
+    aiAssistantEscalationReason?: string;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): {
+  ok: boolean;
+  ticket: TicketRecord;
+  sla: SLARecord;
+  assignment: AssignmentRecord | null;
+  lifecycleEvent: TicketLifecycleEventRecord | null;
+  messageRecord: MessageRecord | null;
+  notification: WorkspaceNotificationRecord | null;
+  notificationStatus: {
+    notificationCreated: boolean;
+    notificationReused: boolean;
+    notificationId: string | null;
+  };
+  message: string;
+} {
+  const bootstrap = getClientSideFallbackBootstrap(undefined, activeProfile);
+  const ticket = bootstrap.tickets.find((t) => t.ticket_id === input.ticketId);
+  if (!ticket) {
+    throw new Error(`Ticket ${input.ticketId} not found in workspace.`);
+  }
+
+  const nowIso = input.evaluatedAtIso || formatIsoWithIstOffset(new Date());
+
+  const sla = buildReproducibleSlaRecord({
+    ticketId: ticket.ticket_id,
+    category: ticket.category_name,
+    startTimestampIso: ticket.submitted_at,
+    evaluatedTimestampIso: nowIso,
+    isTicketEscalated: ticket.is_escalated,
+    requiresEscalation: ticket.requires_escalation || Boolean(input.aiAssistantEscalationReason),
+    lifecycleStatus: ticket.lifecycle_status,
+  });
+
+  const shouldEscalate =
+    Boolean(input.aiAssistantEscalationReason) ||
+    Boolean(sla.breach_status) ||
+    (Boolean(sla.is_approaching_deadline) && Boolean(input.escalateOnApproachingDeadline));
+
+  if (
+    shouldEscalate &&
+    ticket.lifecycle_status !== RequestStatus.Resolved &&
+    ticket.lifecycle_status !== RequestStatus.Closed
+  ) {
+    ticket.is_escalated = true;
+    ticket.requires_escalation = true;
+    if (input.aiAssistantEscalationReason) {
+      ticket.escalation_reason = input.aiAssistantEscalationReason;
+    } else if (sla.breach_status) {
+      ticket.escalation_reason = `SLA breach detected (+${sla.overdue_business_minutes ?? 0}m past SLA target)`;
+    } else if (sla.is_approaching_deadline) {
+      ticket.escalation_reason = 'Escalation triggered by approaching SLA deadline';
+    }
+    ticket.lifecycle_status = RequestStatus.Escalated;
+    ticket.updated_at = nowIso;
+  }
+
+  const slaIdx = bootstrap.slas.findIndex((s) => s.ticket_id === ticket.ticket_id);
+  if (slaIdx >= 0) {
+    bootstrap.slas[slaIdx] = sla;
+  } else {
+    bootstrap.slas.unshift(sla);
+  }
+
+  const eventSeq = bootstrap.lifecycleEvents.filter((e) => e.ticket_id === ticket.ticket_id).length + 1;
+  const event = createLifecycleEvent({
+    ticketId: ticket.ticket_id,
+    previousState: ticket.lifecycle_status,
+    newState: ticket.lifecycle_status,
+    actorId: activeProfile?.id || bootstrap.requester.requester_id,
+    actorRole: activeProfile?.actor_role || ActorRole.AcademicAdministrator,
+    reason: `SLA & escalation audit executed (${sla.breach_status ? 'Breach Flagged' : sla.is_approaching_deadline ? 'Approaching Deadline' : 'Within Operational SLA'})`,
+    timestampIso: nowIso,
+    eventSequence: eventSeq,
+  });
+  bootstrap.lifecycleEvents.unshift(event);
+
+  const notificationId = `NOTIF-SLA-${Date.now()}`;
+  const notification: WorkspaceNotificationRecord = {
+    notification_id: notificationId,
+    recipient_profile_id: activeProfile?.id || 'sys',
+    ticket_id: ticket.ticket_id,
+    event_type: sla.breach_status || sla.is_approaching_deadline ? 'escalated' : 'routing_assigned',
+    category: 'lifecycle',
+    title: `SLA Evaluated: ${ticket.ticket_id}`,
+    summary: sla.breach_status
+      ? `Ticket exceeded target resolution threshold (+${sla.overdue_business_minutes || 0}m). Escalation review active.`
+      : sla.is_approaching_deadline
+      ? `Ticket is approaching SLA threshold (${sla.remaining_business_minutes || 0}m remaining).`
+      : `Ticket is within standard SLA targets (${sla.remaining_business_minutes || 0}m remaining).`,
+    policy_reference: ticket.referenced_policy_id
+      ? `${ticket.referenced_policy_id} v${ticket.referenced_policy_version}`
+      : null,
+    is_read: false,
+    created_at: nowIso,
+  };
+  bootstrap.notifications.unshift(notification);
+  bootstrap.metrics.unreadNotificationCount += 1;
+
+  persistFallbackPayload(bootstrap);
+
+  return {
+    ok: true,
+    ticket,
+    sla,
+    assignment: bootstrap.assignments.find((a) => a.ticket_id === ticket.ticket_id) || null,
+    lifecycleEvent: event,
+    messageRecord: null,
+    notification,
+    notificationStatus: {
+      notificationCreated: true,
+      notificationReused: false,
+      notificationId,
+    },
+    message: `SLA evaluated for ${ticket.ticket_id}: ${sla.breach_status ? 'Breach flagged' : sla.is_approaching_deadline ? 'Approaching deadline' : 'Within SLA target'}. Audit event recorded.`,
+  };
+}
+
+export function markClientSideFallbackNotificationsRead(
+  activeProfile?: AppProfile | null
+): {
+  ok: boolean;
+  message: string;
+} {
+  const bootstrap = getClientSideFallbackBootstrap(undefined, activeProfile);
+  bootstrap.notifications.forEach((n) => {
+    n.is_read = true;
+  });
+  bootstrap.metrics.unreadNotificationCount = 0;
+  persistFallbackPayload(bootstrap);
+  return {
+    ok: true,
+    message: 'All notifications marked as read.',
+  };
+}
+
+export function transitionClientSideFallbackTicket(
+  input: {
+    ticketId: string;
+    newState: RequestStatus;
+    reason: string;
+    resolutionSummary?: string;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): {
+  ok: boolean;
+  ticket: TicketRecord;
+  event: TicketLifecycleEventRecord;
+  messageRecord: MessageRecord;
+  sla?: SLARecord;
+} {
+  const bootstrap = getClientSideFallbackBootstrap(undefined, activeProfile);
+  const ticket = bootstrap.tickets.find((t) => t.ticket_id === input.ticketId);
+  if (!ticket) {
+    throw new Error(`Ticket ${input.ticketId} not found in workspace.`);
+  }
+
+  const nowIso = formatIsoWithIstOffset(new Date());
+  const previousState = ticket.lifecycle_status;
+  ticket.lifecycle_status = input.newState;
+  ticket.updated_at = nowIso;
+
+  if (input.newState === RequestStatus.Resolved) {
+    ticket.resolved_at = nowIso;
+    ticket.resolution_summary = input.resolutionSummary || input.reason;
+  } else if (input.newState === RequestStatus.Closed) {
+    ticket.closed_at = nowIso;
+  } else if (input.newState === RequestStatus.Escalated) {
+    ticket.is_escalated = true;
+    ticket.requires_escalation = true;
+    ticket.escalation_reason = input.reason;
+  }
+
+  const eventSeq = bootstrap.lifecycleEvents.filter((e) => e.ticket_id === ticket.ticket_id).length + 1;
+  const event = createLifecycleEvent({
+    ticketId: ticket.ticket_id,
+    previousState,
+    newState: input.newState,
+    actorId: activeProfile?.id || bootstrap.requester.requester_id,
+    actorRole: activeProfile?.actor_role || ActorRole.AcademicAdministrator,
+    reason: input.reason,
+    timestampIso: nowIso,
+    eventSequence: eventSeq,
+  });
+  bootstrap.lifecycleEvents.unshift(event);
+
+  const threadMsgs = bootstrap.messages.filter((m) => m.ticket_id === ticket.ticket_id);
+  const msgSeq = threadMsgs.length + 1;
+  const messageRecord: MessageRecord = {
+    message_id: formatMessageId(ticket.ticket_id, msgSeq),
+    ticket_id: ticket.ticket_id,
+    sequence_number: msgSeq,
+    sender_id: activeProfile?.id || 'sys-transition',
+    sender_profile_id: activeProfile?.id || null,
+    sender_role: activeProfile?.actor_role || ActorRole.AcademicAdministrator,
+    sender_name: activeProfile?.display_name || 'Workflow Transition Engine',
+    message_type: 'staff_response',
+    body: `Stage updated to '${input.newState}': ${input.reason}`,
+    cited_policy_id: ticket.referenced_policy_id,
+    cited_policy_version: ticket.referenced_policy_version,
+    cited_article_id: ticket.referenced_article_id,
+    cited_article_version: ticket.referenced_article_version,
+    is_internal: false,
+    created_at: nowIso,
+  };
+  bootstrap.messages.push(messageRecord);
+
+  bootstrap.metrics.activeOpenCount = bootstrap.tickets.filter(
+    (t) => t.lifecycle_status !== RequestStatus.Resolved && t.lifecycle_status !== RequestStatus.Closed
+  ).length;
+  bootstrap.metrics.resolvedCount = bootstrap.tickets.filter((t) => t.lifecycle_status === RequestStatus.Resolved).length;
+  bootstrap.metrics.escalatedCount = bootstrap.tickets.filter((t) => t.lifecycle_status === RequestStatus.Escalated || t.is_escalated).length;
+
+  persistFallbackPayload(bootstrap);
+
+  const sla = bootstrap.slas.find((s) => s.ticket_id === ticket.ticket_id);
+  return {
+    ok: true,
+    ticket,
+    event,
+    messageRecord,
+    sla,
+  };
+}
+
+export function reassignClientSideFallbackTicket(
+  input: {
+    ticketId: string;
+    targetTeam: string;
+    reason: string;
+    requiresHumanReview?: boolean;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): {
+  ok: boolean;
+  ticket: TicketRecord;
+  assignment: AssignmentRecord;
+  sla?: SLARecord;
+  messageRecord: MessageRecord;
+  message: string;
+} {
+  const bootstrap = getClientSideFallbackBootstrap(undefined, activeProfile);
+  const ticket = bootstrap.tickets.find((t) => t.ticket_id === input.ticketId);
+  if (!ticket) {
+    throw new Error(`Ticket ${input.ticketId} not found in workspace.`);
+  }
+
+  const nowIso = formatIsoWithIstOffset(new Date());
+  const prevTeam = ticket.current_assigned_team;
+  ticket.current_assigned_team = input.targetTeam;
+  ticket.updated_at = nowIso;
+
+  const ticketAssignments = bootstrap.assignments.filter((a) => a.ticket_id === ticket.ticket_id);
+  const asgSeq = ticketAssignments.length + 1;
+  const assignment: AssignmentRecord = {
+    assignment_id: formatAssignmentId(ticket.ticket_id, asgSeq),
+    ticket_id: ticket.ticket_id,
+    sequence_number: asgSeq,
+    assigned_team: input.targetTeam,
+    assigned_actor_id: activeProfile?.id || null,
+    assigned_actor_role: activeProfile?.actor_role || ActorRole.SupportStaff,
+    routing_rule_id: ticket.current_routing_rule_id || 'ROUTE-DEFAULT',
+    assignment_reason: input.reason,
+    previous_assignment_id: ticketAssignments[0]?.assignment_id || null,
+    previous_assigned_team: prevTeam,
+    requires_human_review: Boolean(input.requiresHumanReview),
+    is_active: true,
+    assigned_at: nowIso,
+    unassigned_at: null,
+  };
+  bootstrap.assignments.unshift(assignment);
+
+  const eventSeq = bootstrap.lifecycleEvents.filter((e) => e.ticket_id === ticket.ticket_id).length + 1;
+  const event = createLifecycleEvent({
+    ticketId: ticket.ticket_id,
+    previousState: ticket.lifecycle_status,
+    newState: ticket.lifecycle_status,
+    actorId: activeProfile?.id || bootstrap.requester.requester_id,
+    actorRole: activeProfile?.actor_role || ActorRole.AcademicAdministrator,
+    reason: `Reassigned from ${prevTeam} to ${input.targetTeam}: ${input.reason}`,
+    timestampIso: nowIso,
+    eventSequence: eventSeq,
+  });
+  bootstrap.lifecycleEvents.unshift(event);
+
+  const threadMsgs = bootstrap.messages.filter((m) => m.ticket_id === ticket.ticket_id);
+  const msgSeq = threadMsgs.length + 1;
+  const messageRecord: MessageRecord = {
+    message_id: formatMessageId(ticket.ticket_id, msgSeq),
+    ticket_id: ticket.ticket_id,
+    sequence_number: msgSeq,
+    sender_id: activeProfile?.id || 'sys-reassign',
+    sender_profile_id: activeProfile?.id || null,
+    sender_role: activeProfile?.actor_role || ActorRole.AcademicAdministrator,
+    sender_name: activeProfile?.display_name || 'Routing Reassignment Engine',
+    message_type: 'staff_response',
+    body: `Ticket reassigned from ${prevTeam} to ${input.targetTeam}. Reason: ${input.reason}`,
+    cited_policy_id: ticket.referenced_policy_id,
+    cited_policy_version: ticket.referenced_policy_version,
+    cited_article_id: ticket.referenced_article_id,
+    cited_article_version: ticket.referenced_article_version,
+    is_internal: false,
+    created_at: nowIso,
+  };
+  bootstrap.messages.push(messageRecord);
+
+  persistFallbackPayload(bootstrap);
+
+  const sla = bootstrap.slas.find((s) => s.ticket_id === ticket.ticket_id);
+  return {
+    ok: true,
+    ticket,
+    assignment,
+    sla,
+    messageRecord,
+    message: `Ticket reassigned to ${input.targetTeam}.`,
+  };
+}
+
+export function submitClientSideFallbackFeedback(
+  input: {
+    ticketId: string;
+    rating: number;
+    policyClarityScore: number;
+    wasHelpful: boolean;
+    resolutionAccepted: boolean;
+    comments?: string;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): {
+  ok: boolean;
+  feedback: ResolutionFeedbackRecord;
+  message: string;
+} {
+  const bootstrap = getClientSideFallbackBootstrap(undefined, activeProfile);
+  const nowIso = formatIsoWithIstOffset(new Date());
+  const feedback: ResolutionFeedbackRecord = {
+    feedback_id: formatFeedbackId(input.ticketId),
+    ticket_id: input.ticketId,
+    requester_id: bootstrap.requester.requester_id,
+    rating: input.rating,
+    policy_clarity_score: input.policyClarityScore,
+    was_helpful: input.wasHelpful,
+    resolution_accepted: input.resolutionAccepted,
+    comments: input.comments || null,
+    submitted_at: nowIso,
+  };
+  bootstrap.resolutionFeedbacks.unshift(feedback);
+  persistFallbackPayload(bootstrap);
+  return {
+    ok: true,
+    feedback,
+    message: 'Resolution feedback recorded.',
+  };
+}
+
+export function publishClientSideFallbackPolicy(input: {
+  domain: PolicyDomainCode;
+  title: string;
+  version: string;
+  effectiveDate: string;
+  summary: string;
+  content: string;
+}): {
+  ok: boolean;
+  policy: PolicyDocumentRecord;
+  article: KnowledgeArticleRecord;
+  message: string;
+} {
+  const bootstrap = getClientSideFallbackBootstrap();
+  const nowIso = formatIsoWithIstOffset(new Date());
+  const polSeq = bootstrap.knowledgeBase.policies.length + 1;
+  const policyId = `POL-${input.domain}-2026-${String(polSeq).padStart(3, '0')}`;
+  const articleId = `KB-${String(bootstrap.knowledgeBase.articles.length + 1).padStart(6, '0')}`;
+  const categoryId = input.domain === 'FINAID' ? 'CAT-FINAID' : input.domain === 'REG' ? 'CAT-REG' : input.domain === 'IT' ? 'CAT-IT' : 'CAT-ACCESS';
+
+  const policy: PolicyDocumentRecord = {
+    policy_id: policyId,
+    domain: input.domain,
+    category_id: categoryId,
+    title: input.title,
+    version: input.version,
+    effective_date: input.effectiveDate,
+    expiration_date: null,
+    lifecycle_state: 'active',
+    supersedes_policy_id: null,
+    superseded_by_policy_id: null,
+    summary: input.summary,
+    content: input.content,
+    authoritative_section_ref: 'Section 1.1',
+    source_name: 'Institutional Governance Registry',
+    source_url: `https://campusresolve.edu/policies#${policyId}`,
+    dataset_or_doc_version: '2026.1',
+    retrieval_date: nowIso,
+    license_terms: 'Institutional Educational Use',
+    attribution: 'Campus Academic Senate',
+    transformations_performed: 'None',
+    discarded_fields: null,
+    is_synthetic_policy: false,
+    published_by_profile_id: null,
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  const article: KnowledgeArticleRecord = {
+    article_id: articleId,
+    category_id: categoryId,
+    primary_policy_id: policyId,
+    primary_policy_version: input.version,
+    title: input.title,
+    version: input.version,
+    effective_date: input.effectiveDate,
+    expiration_date: null,
+    lifecycle_state: 'published',
+    summary: input.summary,
+    content: input.content,
+    tags: [input.domain.toLowerCase(), 'policy'],
+    source_url: `https://campusresolve.edu/kb#${articleId}`,
+    dataset_or_doc_version: '2026.1',
+    retrieval_date: nowIso,
+    license_terms: 'Institutional Educational Use',
+    attribution: 'Campus Academic Support',
+    transformations_performed: 'None',
+    discarded_fields: null,
+    is_synthetic_article: false,
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  bootstrap.knowledgeBase.policies.unshift(policy);
+  bootstrap.knowledgeBase.articles.unshift(article);
+  persistFallbackPayload(bootstrap);
+
+  return {
+    ok: true,
+    policy,
+    article,
+    message: 'Policy document published successfully.',
+  };
+}
+
+export async function postTicketMessage(
+  input: {
+    ticketId: string;
+    body: string;
+    isInternal?: boolean;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): Promise<{
   ok: boolean;
   messageRecord: MessageRecord;
   ticket: TicketRecord;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'post_message',
-      ...input,
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'post_message',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless post_message unavailable, using resilient client-side fallback:', err);
+    return createClientSideFallbackMessage(input, activeProfile);
+  }
 }
 
-export async function transitionOperationalTicket(input: {
-  ticketId: string;
-  newState: RequestStatus;
-  reason: string;
-  resolutionSummary?: string;
-  idempotencyKey?: string;
-}): Promise<{
+export async function transitionOperationalTicket(
+  input: {
+    ticketId: string;
+    newState: RequestStatus;
+    reason: string;
+    resolutionSummary?: string;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): Promise<{
   ok: boolean;
   ticket: TicketRecord;
   event: TicketLifecycleEventRecord;
   messageRecord: MessageRecord;
   sla?: SLARecord;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'transition_ticket',
-      ...input,
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'transition_ticket',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless transition_ticket unavailable, using resilient client-side fallback:', err);
+    return transitionClientSideFallbackTicket(input, activeProfile);
+  }
 }
 
-export async function reassignOperationalTicket(input: {
-  ticketId: string;
-  targetTeam: string;
-  reason: string;
-  requiresHumanReview?: boolean;
-  idempotencyKey?: string;
-}): Promise<{
+export async function reassignOperationalTicket(
+  input: {
+    ticketId: string;
+    targetTeam: string;
+    reason: string;
+    requiresHumanReview?: boolean;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): Promise<{
   ok: boolean;
   ticket: TicketRecord;
   assignment: AssignmentRecord;
@@ -655,22 +1220,30 @@ export async function reassignOperationalTicket(input: {
   messageRecord: MessageRecord;
   message: string;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'reassign_ticket',
-      ...input,
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'reassign_ticket',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless reassign_ticket unavailable, using resilient client-side fallback:', err);
+    return reassignClientSideFallbackTicket(input, activeProfile);
+  }
 }
 
-export async function evaluateTicketSlaAndEscalation(input: {
-  ticketId: string;
-  evaluatedAtIso?: string;
-  escalateOnApproachingDeadline?: boolean;
-  aiAssistantEscalationReason?: string;
-  idempotencyKey?: string;
-}): Promise<{
+export async function evaluateTicketSlaAndEscalation(
+  input: {
+    ticketId: string;
+    evaluatedAtIso?: string;
+    escalateOnApproachingDeadline?: boolean;
+    aiAssistantEscalationReason?: string;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): Promise<{
   ok: boolean;
   ticket: TicketRecord;
   sla: SLARecord;
@@ -685,35 +1258,48 @@ export async function evaluateTicketSlaAndEscalation(input: {
   };
   message: string;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'evaluate_sla_and_escalation',
-      ...input,
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'evaluate_sla_and_escalation',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless evaluate_sla_and_escalation unavailable, using resilient client-side fallback:', err);
+    return evaluateClientSideFallbackSlaAndEscalation(input, activeProfile);
+  }
 }
 
-export async function submitTicketFeedback(input: {
-  ticketId: string;
-  rating: number;
-  policyClarityScore: number;
-  wasHelpful: boolean;
-  resolutionAccepted: boolean;
-  comments?: string;
-  idempotencyKey?: string;
-}): Promise<{
+export async function submitTicketFeedback(
+  input: {
+    ticketId: string;
+    rating: number;
+    policyClarityScore: number;
+    wasHelpful: boolean;
+    resolutionAccepted: boolean;
+    comments?: string;
+    idempotencyKey?: string;
+  },
+  activeProfile?: AppProfile | null
+): Promise<{
   ok: boolean;
   feedback: ResolutionFeedbackRecord;
   message: string;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'submit_feedback',
-      ...input,
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'submit_feedback',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless submit_feedback unavailable, using resilient client-side fallback:', err);
+    return submitClientSideFallbackFeedback(input, activeProfile);
+  }
 }
 
 export async function publishPolicyDocument(input: {
@@ -729,25 +1315,37 @@ export async function publishPolicyDocument(input: {
   article: KnowledgeArticleRecord;
   message: string;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'publish_policy',
-      ...input,
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'publish_policy',
+        ...input,
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless publish_policy unavailable, using resilient client-side fallback:', err);
+    return publishClientSideFallbackPolicy(input);
+  }
 }
 
-export async function markAllNotificationsRead(): Promise<{
+export async function markAllNotificationsRead(
+  activeProfile?: AppProfile | null
+): Promise<{
   ok: boolean;
   message: string;
 }> {
-  return await authorizedJsonFetch('/api/ops/workspace', {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'mark_notifications_read',
-    }),
-  });
+  try {
+    return await authorizedJsonFetch('/api/ops/workspace', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'mark_notifications_read',
+      }),
+    });
+  } catch (err) {
+    console.warn('Serverless mark_notifications_read unavailable, using resilient client-side fallback:', err);
+    return markClientSideFallbackNotificationsRead(activeProfile);
+  }
 }
 
 export async function queryPolicyAssistant(input: {

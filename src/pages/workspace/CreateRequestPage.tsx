@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
+import { useAuth } from '../../context/AuthContext';
 import { getActorCategories, getActorMetadata } from '../../utils/rbac';
 import {
   CreateRequestFormInput,
@@ -85,7 +86,8 @@ const URGENCY_OPTIONS = [
 ];
 
 export const CreateRequestPage: React.FC = () => {
-  const { activeRole, refreshWorkspaceData } = useWorkspaceContext();
+  const { activeRole, setWorkspaceData, refreshWorkspaceData } = useWorkspaceContext();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const prefill = (
@@ -159,17 +161,20 @@ export const CreateRequestPage: React.FC = () => {
     setSubmitError(null);
 
     try {
-      const res = await createOperationalTicket({
-        subject: formState.subject,
-        category: formState.category,
-        departmentTarget: formState.departmentTarget,
-        urgencyLevel: formState.urgencyLevel,
-        courseOrPolicyCode: formState.courseOrPolicyCode,
-        description: formState.description,
-        idempotencyKey: prefill?.fromQueryId
-          ? `escalate_policy_${prefill.fromQueryId}`
-          : `req_${Date.now()}_${encodeURIComponent(formState.subject.slice(0, 10))}`,
-      });
+      const res = await createOperationalTicket(
+        {
+          subject: formState.subject,
+          category: formState.category,
+          departmentTarget: formState.departmentTarget,
+          urgencyLevel: formState.urgencyLevel,
+          courseOrPolicyCode: formState.courseOrPolicyCode,
+          description: formState.description,
+          idempotencyKey: prefill?.fromQueryId
+            ? `escalate_policy_${prefill.fromQueryId}`
+            : `req_${Date.now()}_${encodeURIComponent(formState.subject.slice(0, 10))}`,
+        },
+        profile
+      );
 
       if (prefill?.fromQueryId && res.ticket?.ticket_id) {
         try {
@@ -187,6 +192,27 @@ export const CreateRequestPage: React.FC = () => {
         assignment: res.assignment,
         sla: res.sla,
       });
+
+      if (res && res.ticket) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            tickets: [res.ticket, ...prev.tickets],
+            assignments: res.assignment ? [res.assignment, ...prev.assignments] : prev.assignments,
+            slas: res.sla ? [res.sla, ...prev.slas] : prev.slas,
+            messages: res.messages ? [...res.messages, ...prev.messages] : prev.messages,
+            lifecycleEvents: res.lifecycleEvents ? [...res.lifecycleEvents, ...prev.lifecycleEvents] : prev.lifecycleEvents,
+            notifications: res.notification ? [res.notification, ...prev.notifications] : prev.notifications,
+            metrics: {
+              ...prev.metrics,
+              totalAuthorizedTickets: prev.metrics.totalAuthorizedTickets + 1,
+              activeOpenCount: prev.metrics.activeOpenCount + 1,
+            },
+          };
+        });
+      }
+
       refreshWorkspaceData().catch(() => {});
     } catch (err) {
       setSubmitError(

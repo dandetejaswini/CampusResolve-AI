@@ -8,6 +8,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
+import { useAuth } from '../../context/AuthContext';
 import { ViewDataState } from '../../types/domain';
 import { getActorMetadata } from '../../utils/rbac';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -22,8 +23,10 @@ export const NotificationsPage: React.FC = () => {
     dataState,
     setDataState,
     workspaceData,
+    setWorkspaceData,
     refreshWorkspaceData: refreshWorkspace,
   } = useWorkspaceContext();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const actorMeta = getActorMetadata(activeRole);
   const [filterCategory, setFilterCategory] = useState<
@@ -46,9 +49,26 @@ export const NotificationsPage: React.FC = () => {
   const handleMarkAllRead = async () => {
     if (markingRead) return;
     setMarkingRead(true);
+    // Optimistic instant local state update
+    setWorkspaceData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        metrics: {
+          ...prev.metrics,
+          unreadNotificationCount: 0,
+        },
+        notifications: prev.notifications.map((n) => ({
+          ...n,
+          is_read: true,
+        })),
+      };
+    });
     try {
-      await markAllNotificationsRead();
+      await markAllNotificationsRead(profile);
       refreshWorkspace().catch(() => {});
+    } catch (err) {
+      console.warn('markAllNotificationsRead error:', err);
     } finally {
       setMarkingRead(false);
     }

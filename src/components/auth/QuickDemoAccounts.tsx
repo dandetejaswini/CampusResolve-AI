@@ -61,10 +61,11 @@ export const QuickDemoAccounts: React.FC<{
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {INSTITUTIONAL_DEMO_ACCOUNTS.map((demo) => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {INSTITUTIONAL_DEMO_ACCOUNTS.map((demo, idx) => {
           const Icon = ROLE_ICONS[demo.role] || GraduationCap;
           const isLoading = loadingRole === demo.role;
+          const isLastOdd = idx === INSTITUTIONAL_DEMO_ACCOUNTS.length - 1;
 
           return (
             <button
@@ -72,29 +73,33 @@ export const QuickDemoAccounts: React.FC<{
               type="button"
               disabled={Boolean(loadingRole)}
               onClick={() => handleSelectRole(demo)}
-              className="text-left p-3 rounded-md bg-[#F8F7F3] border border-[#292A25]/12 hover:border-[#777B63] hover:shadow-2xs transition-all flex flex-col justify-between gap-2 group cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[#777B63]"
+              className={`text-left p-3.5 rounded-md bg-[#F8F7F3] border border-[#292A25]/12 hover:border-[#777B63] hover:shadow-xs transition-all flex flex-col justify-between gap-2.5 group cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[#777B63] overflow-hidden ${
+                isLastOdd ? 'sm:col-span-2' : ''
+              }`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 rounded bg-[#E8E4DC] text-[#292A25] group-hover:bg-[#292A25] group-hover:text-[#F8F7F3] transition-colors">
-                    <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded bg-[#E8E4DC] text-[#292A25] group-hover:bg-[#292A25] group-hover:text-[#F8F7F3] transition-colors shrink-0 mt-0.5">
+                    <Icon className="w-4 h-4" aria-hidden="true" />
                   </div>
-                  <span className="text-xs font-semibold text-[#292A25]">
-                    {demo.label}
-                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-semibold text-[#292A25] leading-tight break-words">
+                      {demo.label}
+                    </span>
+                    <span className="text-[10px] text-[#777B63] font-mono-tabular bg-[#292A25]/6 px-1.5 py-0.5 rounded w-fit mt-1">
+                      {demo.badge}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-[#777B63] font-mono-tabular">
-                  {demo.badge}
-                </span>
+
+                <p className="text-[11px] text-[#292A25]/75 line-clamp-2 leading-relaxed break-words mt-0.5">
+                  {demo.description}
+                </p>
               </div>
 
-              <div className="text-[11px] text-[#292A25]/75 line-clamp-2 leading-relaxed">
-                {demo.description}
-              </div>
-
-              <div className="pt-1.5 border-t border-[#292A25]/8 flex items-center justify-between text-[11px] font-medium text-[#777B63] group-hover:text-[#292A25]">
-                <span className="truncate">{demo.displayName}</span>
-                <span className="flex items-center gap-1 shrink-0 ml-1">
+              <div className="pt-2 border-t border-[#292A25]/8 flex items-center justify-between text-[11px] font-medium text-[#777B63] group-hover:text-[#292A25] min-w-0">
+                <span className="truncate pr-2">{demo.displayName}</span>
+                <span className="flex items-center gap-1 shrink-0">
                   {isLoading ? 'Entering...' : 'Log In'}
                   <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </span>

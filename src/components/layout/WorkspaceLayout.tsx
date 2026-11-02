@@ -23,6 +23,9 @@ export interface WorkspaceContextValue {
   dataState: ViewDataState;
   setDataState: (state: ViewDataState) => void;
   workspaceData: WorkspaceBootstrapPayload | null;
+  setWorkspaceData: React.Dispatch<
+    React.SetStateAction<WorkspaceBootstrapPayload | null>
+  >;
   isLoadingWorkspace: boolean;
   workspaceError: string | null;
   refreshWorkspaceData: (params?: {
@@ -123,6 +126,7 @@ export const WorkspaceLayout: React.FC = () => {
         dataState,
         setDataState,
         workspaceData,
+        setWorkspaceData,
         isLoadingWorkspace,
         workspaceError,
         refreshWorkspaceData,

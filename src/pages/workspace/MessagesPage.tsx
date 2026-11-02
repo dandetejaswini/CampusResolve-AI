@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Send, FileText, ShieldCheck, Lock } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
+import { useAuth } from '../../context/AuthContext';
 import { ActorRole, ViewDataState } from '../../types/domain';
 import { getActorMetadata } from '../../utils/rbac';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -17,8 +18,10 @@ export const MessagesPage: React.FC = () => {
     dataState,
     setDataState,
     workspaceData,
+    setWorkspaceData,
     refreshWorkspaceData: refreshWorkspace,
   } = useWorkspaceContext();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const actorMeta = getActorMetadata(activeRole);
 
@@ -62,20 +65,37 @@ export const MessagesPage: React.FC = () => {
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (sending) return;
-    if (!activeTicketId || replyBody.trim().length < 5) {
-      setSendError('Message body must be at least 5 characters.');
+    if (!activeTicketId || replyBody.trim().length === 0) {
+      setSendError('Please enter a message before sending.');
       return;
     }
     setSending(true);
     setSendError(null);
     try {
-      await postTicketMessage({
-        ticketId: activeTicketId,
-        body: replyBody.trim(),
-        isInternal: isStaffOrAdmin && isInternalNote,
-      });
+      const res = await postTicketMessage(
+        {
+          ticketId: activeTicketId,
+          body: replyBody.trim(),
+          isInternal: isStaffOrAdmin && isInternalNote,
+        },
+        profile
+      );
       setReplyBody('');
       setIsInternalNote(false);
+      if (res && res.messageRecord) {
+        setWorkspaceData((prev) => {
+          if (!prev) return prev;
+          const exists = prev.messages.some(
+            (m) => m.message_id === res.messageRecord.message_id
+          );
+          return {
+            ...prev,
+            messages: exists
+              ? prev.messages
+              : [...prev.messages, res.messageRecord],
+          };
+        });
+      }
       refreshWorkspace().catch(() => {});
     } catch (err) {
       setSendError(
