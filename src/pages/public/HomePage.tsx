@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpenCheck,
@@ -17,7 +17,15 @@ import { useAuth } from '../../context/AuthContext';
 
 export const HomePage: React.FC = () => {
   const { status, profile } = useAuth();
+  const navigate = useNavigate();
   const isAuthenticated = status === 'authenticated' && Boolean(profile);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('campusresolve_demo_profile');
+    if ((status === 'authenticated' && profile) || saved) {
+      navigate('/workspace/dashboard', { replace: true });
+    }
+  }, [status, profile, navigate]);
   return (
     <div className="flex flex-col">
       {/* 1. Premium Hero Section with 3D Layered Workflow Stack */}

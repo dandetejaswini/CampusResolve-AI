@@ -543,7 +543,10 @@ export const KnowledgeBasePage: React.FC = () => {
           role="dialog"
           aria-modal="true"
           aria-label={`Inspect policy ${selectedPolicy.policy_id}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#292A25]/45 p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[#292A25]/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto pt-6 sm:pt-10 pb-12 animate-page-enter"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedPolicy(null);
+          }}
         >
           <div className="w-full max-w-2xl rounded-md border border-[#292A25]/20 bg-[#F8F7F3] p-6 shadow-xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4 border-b border-[#292A25]/12 pb-3">
@@ -672,7 +675,10 @@ export const KnowledgeBasePage: React.FC = () => {
           role="dialog"
           aria-modal="true"
           aria-label={`Inspect knowledge article ${selectedArticle.article_id}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#292A25]/45 p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[#292A25]/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto pt-6 sm:pt-10 pb-12 animate-page-enter"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedArticle(null);
+          }}
         >
           <div className="w-full max-w-2xl rounded-md border border-[#292A25]/20 bg-[#F8F7F3] p-6 shadow-xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4 border-b border-[#292A25]/12 pb-3">
@@ -763,7 +769,10 @@ export const KnowledgeBasePage: React.FC = () => {
           role="dialog"
           aria-modal="true"
           aria-label="Register Policy Document"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#292A25]/45 p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[#292A25]/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto pt-6 sm:pt-10 pb-12 animate-page-enter"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPublishDialogOpen(false);
+          }}
         >
           <form
             onSubmit={handlePublishPolicy}

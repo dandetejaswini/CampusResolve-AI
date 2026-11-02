@@ -40,11 +40,14 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#292A25]/60 backdrop-blur-[1px] animate-page-enter"
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6 overflow-y-auto pt-10 sm:pt-16 pb-12 bg-[#292A25]/60 backdrop-blur-xs animate-page-enter"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dialog-title"
       aria-describedby="dialog-description"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
     >
       <div className="w-full max-w-lg rounded-md bg-[#F8F7F3] border border-[#292A25]/20 shadow-xl p-6 md:p-7 flex flex-col gap-5">
         <div className="flex items-start justify-between gap-4 border-b border-[#292A25]/10 pb-4">

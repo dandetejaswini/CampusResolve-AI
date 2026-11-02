@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FilePlus2,
@@ -10,6 +10,7 @@ import {
   Star,
   AlertTriangle,
   ShieldAlert,
+  X,
 } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -96,6 +97,18 @@ export const MyRequestsPage: React.FC = () => {
   const [resolutionAccepted, setResolutionAccepted] = useState<boolean>(true);
   const [feedbackComments, setFeedbackComments] = useState<string>('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  useEffect(() => {
+    if (!selectedTicketId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedTicketId(null);
+        setActionBanner(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTicketId]);
 
   const canAdjudicateEscalation = canActorPerformAction(
     activeRole,
@@ -194,10 +207,9 @@ export const MyRequestsPage: React.FC = () => {
     };
   });
 
-  const activeTicket =
-    tickets.find((t) => t.ticket_id === selectedTicketId) ||
-    filteredTickets[0] ||
-    null;
+  const activeTicket = selectedTicketId
+    ? tickets.find((t) => t.ticket_id === selectedTicketId) || null
+    : null;
 
   const isActiveTicketOwner = Boolean(
     activeTicket &&
@@ -244,7 +256,7 @@ export const MyRequestsPage: React.FC = () => {
             setSelectedTicketId(r.id);
             setActionBanner(null);
           }}
-          className="font-mono font-semibold text-[#292A25] underline hover:text-[#777B63] text-left"
+          className="font-mono font-semibold text-[#292A25] underline hover:text-[#777B63] text-left cursor-pointer"
         >
           {r.id}
         </button>
@@ -253,7 +265,18 @@ export const MyRequestsPage: React.FC = () => {
     {
       key: 'title',
       header: 'Request Subject',
-      render: (r) => r.title,
+      render: (r) => (
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedTicketId(r.id);
+            setActionBanner(null);
+          }}
+          className="text-left font-medium text-[#292A25] hover:text-[#777B63] hover:underline cursor-pointer block w-full"
+        >
+          {r.title}
+        </button>
+      ),
     },
     {
       key: 'category',
@@ -688,47 +711,70 @@ export const MyRequestsPage: React.FC = () => {
         }}
       />
 
-      {/* Complete Traceability & Lifecycle Management Panel for Selected Ticket */}
+      {/* Complete Traceability & Lifecycle Management Panel for Selected Ticket in a Window Modal */}
       {activeTicket && (
-        <section className="rounded-md surface-elevated p-6 md:p-8 flex flex-col gap-6 border border-[#292A25]/15">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#292A25]/10 pb-4">
-            <div className="flex flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#777B63]">
-                <span>{activeTicket.ticket_id}</span>
-                <span>·</span>
-                <span>Requester: {activeTicket.requester_id}</span>
-                <span>·</span>
-                <span>Term: {activeTicket.term_id}</span>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Ticket ${activeTicket.ticket_id}: ${activeTicket.subject}`}
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[#292A25]/60 backdrop-blur-xs p-4 sm:p-6 md:p-8 overflow-y-auto pt-6 sm:pt-10 pb-12 animate-page-enter"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedTicketId(null);
+              setActionBanner(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-4xl rounded-xl surface-elevated p-6 md:p-8 flex flex-col gap-6 border border-[#292A25]/20 shadow-2xl bg-[#F8F7F3] my-auto sm:my-0 max-h-[90vh] overflow-y-auto">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-[#292A25]/12 pb-4">
+              <div className="flex flex-col gap-1 min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#777B63]">
+                  <span className="font-semibold text-[#292A25]">{activeTicket.ticket_id}</span>
+                  <span>·</span>
+                  <span>Requester: {activeTicket.requester_id}</span>
+                  <span>·</span>
+                  <span>Term: {activeTicket.term_id}</span>
+                </div>
+                <h2 className="font-serif-display text-xl md:text-2xl text-[#292A25] mt-1 break-words">
+                  {activeTicket.subject}
+                </h2>
               </div>
-              <h2 className="font-serif-display text-xl md:text-2xl text-[#292A25]">
-                {activeTicket.subject}
-              </h2>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <StatusIndicator status={activeTicket.lifecycle_status} showCode />
-              {canReassign && (
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <StatusIndicator status={activeTicket.lifecycle_status} showCode />
+                {canReassign && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isEvaluatingSla}
+                    leftIcon={<Clock className="w-3.5 h-3.5" />}
+                    onClick={handleEvaluateSlaAndEscalation}
+                  >
+                    {isEvaluatingSla
+                      ? 'Evaluating SLA...'
+                      : 'Evaluate SLA'}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isEvaluatingSla}
-                  leftIcon={<Clock className="w-3.5 h-3.5" />}
-                  onClick={handleEvaluateSlaAndEscalation}
+                  leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
+                  onClick={() => navigate('/workspace/messages')}
                 >
-                  {isEvaluatingSla
-                    ? 'Evaluating SLA...'
-                    : 'Evaluate SLA & Escalation Rules'}
+                  Open Thread
                 </Button>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
-                onClick={() => navigate('/workspace/messages')}
-              >
-                Open Thread
-              </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTicketId(null);
+                    setActionBanner(null);
+                  }}
+                  className="p-1.5 rounded-md text-[#292A25]/60 hover:text-[#292A25] hover:bg-[#292A25]/10 transition-colors"
+                  aria-label="Close ticket window"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-          </div>
 
           {actionBanner && (
             <div
@@ -1124,113 +1170,151 @@ export const MyRequestsPage: React.FC = () => {
                   </form>
                 )}
 
-              {/* Resolution Feedback Form (Entity 11: ResolutionFeedback — Phase 5 Section 8) */}
-              <form
-                onSubmit={handleFeedbackSubmit}
-                className="rounded border border-[#292A25]/12 bg-[#F8F7F3] p-4 flex flex-col gap-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#292A25]">
-                    <Star className="w-3.5 h-3.5 text-[#777B63]" />
-                    <span>
-                      Resolution Feedback Record (
-                      {activeFeedback
-                        ? activeFeedback.feedback_id
-                        : `FDB-${activeTicket.ticket_id}`}
-                      )
+              {/* Role-Governed Resolution Feedback Section */}
+              {isActiveTicketOwner ? (
+                /* Ticket Requester: Can submit or update feedback once ticket is resolved/closed */
+                <form
+                  onSubmit={handleFeedbackSubmit}
+                  className="rounded border border-[#292A25]/12 bg-[#F8F7F3] p-4 flex flex-col gap-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#292A25]">
+                      <Star className="w-3.5 h-3.5 text-[#777B63]" />
+                      <span>
+                        Resolution Feedback Record (
+                        {activeFeedback
+                          ? activeFeedback.feedback_id
+                          : `FDB-${activeTicket.ticket_id}`}
+                        )
+                      </span>
+                    </div>
+                    {activeFeedback && (
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#777B63]">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Recorded ({activeFeedback.rating}/5)
+                      </span>
+                    )}
+                  </div>
+
+                  {activeTicket.lifecycle_status !== RequestStatus.Resolved &&
+                    activeTicket.lifecycle_status !== RequestStatus.Closed && (
+                      <div className="rounded border border-[#777B63]/30 bg-[#E8E4DC]/50 p-2.5 text-[11px] text-[#292A25]/80">
+                        Resolution feedback becomes available once the ticket is marked 'resolved' or 'closed' (current stage: '{activeTicket.lifecycle_status}').
+                      </div>
+                    )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <SelectField
+                      label="Resolution Satisfaction (1–5)"
+                      value={String(feedbackRating)}
+                      onChange={(e) => setFeedbackRating(Number(e.target.value))}
+                      options={[
+                        { value: '5', label: '5 — Very Satisfied' },
+                        { value: '4', label: '4 — Satisfied' },
+                        { value: '3', label: '3 — Neutral' },
+                        { value: '2', label: '2 — Dissatisfied' },
+                        { value: '1', label: '1 — Very Dissatisfied' },
+                      ]}
+                    />
+                    <SelectField
+                      label="Policy Citation Clarity (1–5)"
+                      value={String(clarityScore)}
+                      onChange={(e) => setClarityScore(Number(e.target.value))}
+                      options={[
+                        { value: '5', label: '5 — Exact & Clear Citation' },
+                        { value: '4', label: '4 — Clear' },
+                        { value: '3', label: '3 — Adequate' },
+                        { value: '2', label: '2 — Ambiguous' },
+                        { value: '1', label: '1 — Unclear / Missing' },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-4">
+                    <CheckboxField
+                      label="Response was helpful"
+                      checked={wasHelpful}
+                      onChange={(e) => setWasHelpful(e.target.checked)}
+                    />
+                    <CheckboxField
+                      label="Resolution determination accepted"
+                      checked={resolutionAccepted}
+                      onChange={(e) => setResolutionAccepted(e.target.checked)}
+                    />
+                  </div>
+
+                  <TextAreaField
+                    label="Feedback Comments (Optional)"
+                    rows={2}
+                    placeholder="Add optional feedback regarding policy accuracy or resolution handling..."
+                    value={feedbackComments}
+                    onChange={(e) => setFeedbackComments(e.target.value)}
+                  />
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="outline"
+                      disabled={
+                        isSubmittingFeedback ||
+                        (activeTicket.lifecycle_status !==
+                          RequestStatus.Resolved &&
+                          activeTicket.lifecycle_status !== RequestStatus.Closed)
+                      }
+                    >
+                      {isSubmittingFeedback
+                        ? 'Saving Feedback...'
+                        : activeFeedback
+                        ? 'Update Resolution Feedback'
+                        : 'Record Resolution Feedback'}
+                    </Button>
+                  </div>
+                </form>
+              ) : activeFeedback ? (
+                /* Non-Requester (Instructor, Operations Staff, Dean, Admin): Read-only feedback review */
+                <div className="rounded border border-[#292A25]/12 bg-[#F8F7F3] p-4 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between border-b border-[#292A25]/8 pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#292A25]">
+                      <Star className="w-3.5 h-3.5 text-[#777B63]" />
+                      <span>Requester Resolution Feedback ({activeFeedback.feedback_id})</span>
+                    </div>
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-[#777B63] bg-[#777B63]/15 px-2 py-0.5 rounded">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Recorded Score: {activeFeedback.rating}/5
                     </span>
                   </div>
-                  {activeFeedback && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-[#777B63]">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Recorded ({activeFeedback.rating}/5)
-                    </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div>
+                      <span className="text-[#777B63] text-[11px] block">Satisfaction</span>
+                      <strong className="text-[#292A25]">{activeFeedback.rating} / 5</strong>
+                    </div>
+                    <div>
+                      <span className="text-[#777B63] text-[11px] block">Policy Clarity</span>
+                      <strong className="text-[#292A25]">{activeFeedback.policy_clarity_score} / 5</strong>
+                    </div>
+                    <div>
+                      <span className="text-[#777B63] text-[11px] block">Helpful</span>
+                      <strong className="text-[#292A25]">{activeFeedback.was_helpful ? 'Yes' : 'No'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[#777B63] text-[11px] block">Determination</span>
+                      <strong className="text-[#292A25]">{activeFeedback.resolution_accepted ? 'Accepted' : 'Appealed'}</strong>
+                    </div>
+                  </div>
+                  {activeFeedback.comments && (
+                    <div className="text-xs text-[#292A25]/80 bg-[#E8E4DC]/40 p-2.5 rounded border border-[#292A25]/8">
+                      <span className="font-semibold text-[#777B63] block text-[10px] uppercase tracking-wider mb-0.5">Requester Comments</span>
+                      "{activeFeedback.comments}"
+                    </div>
                   )}
                 </div>
-
-                {(!isActiveTicketOwner ||
-                  (activeTicket.lifecycle_status !== RequestStatus.Resolved &&
-                    activeTicket.lifecycle_status !== RequestStatus.Closed)) && (
-                  <div className="rounded border border-[#777B63]/30 bg-[#E8E4DC]/50 p-2.5 text-[11px] text-[#292A25]/80">
-                    {!isActiveTicketOwner
-                      ? 'Only the ticket requester who submitted this request may submit resolution feedback.'
-                      : `Resolution feedback becomes available once the ticket is marked 'resolved' or 'closed' (current stage: '${activeTicket.lifecycle_status}').`}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <SelectField
-                    label="Resolution Satisfaction (1–5)"
-                    value={String(feedbackRating)}
-                    onChange={(e) => setFeedbackRating(Number(e.target.value))}
-                    options={[
-                      { value: '5', label: '5 — Very Satisfied' },
-                      { value: '4', label: '4 — Satisfied' },
-                      { value: '3', label: '3 — Neutral' },
-                      { value: '2', label: '2 — Dissatisfied' },
-                      { value: '1', label: '1 — Very Dissatisfied' },
-                    ]}
-                  />
-                  <SelectField
-                    label="Policy Citation Clarity (1–5)"
-                    value={String(clarityScore)}
-                    onChange={(e) => setClarityScore(Number(e.target.value))}
-                    options={[
-                      { value: '5', label: '5 — Exact & Clear Citation' },
-                      { value: '4', label: '4 — Clear' },
-                      { value: '3', label: '3 — Adequate' },
-                      { value: '2', label: '2 — Ambiguous' },
-                      { value: '1', label: '1 — Unclear / Missing' },
-                    ]}
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-4">
-                  <CheckboxField
-                    label="Response was helpful"
-                    checked={wasHelpful}
-                    onChange={(e) => setWasHelpful(e.target.checked)}
-                  />
-                  <CheckboxField
-                    label="Resolution determination accepted"
-                    checked={resolutionAccepted}
-                    onChange={(e) => setResolutionAccepted(e.target.checked)}
-                  />
-                </div>
-
-                <TextAreaField
-                  label="Feedback Comments (Optional)"
-                  rows={2}
-                  placeholder="Add optional feedback regarding policy accuracy or resolution handling..."
-                  value={feedbackComments}
-                  onChange={(e) => setFeedbackComments(e.target.value)}
-                />
-
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant="outline"
-                    disabled={
-                      isSubmittingFeedback ||
-                      !isActiveTicketOwner ||
-                      (activeTicket.lifecycle_status !==
-                        RequestStatus.Resolved &&
-                        activeTicket.lifecycle_status !== RequestStatus.Closed)
-                    }
-                  >
-                    {isSubmittingFeedback
-                      ? 'Saving Feedback...'
-                      : activeFeedback
-                      ? 'Update Resolution Feedback'
-                      : 'Record Resolution Feedback'}
-                  </Button>
-                </div>
-              </form>
+              ) : null}
             </div>
           </div>
-        </section>
-      )}
-    </div>
-  );
+        </div>
+      </div>
+    )}
+  </div>
+);
 };

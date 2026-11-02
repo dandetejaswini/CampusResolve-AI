@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Shield, FilePlus2, BookOpenCheck, Library, RefreshCw } from 'lucide-react';
 import { useWorkspaceContext } from '../../components/layout/WorkspaceLayout';
 import {
@@ -36,14 +36,26 @@ const SCHEMA_COLUMNS: TableColumn<RequestSchemaRow>[] = [
     key: 'requestId',
     header: 'Ticket ID',
     mono: true,
-    render: (row) => row.requestId,
+    render: (row) => (
+      <Link
+        to="/workspace/requests"
+        className="font-mono font-semibold text-[#292A25] underline hover:text-[#777B63]"
+      >
+        {row.requestId}
+      </Link>
+    ),
   },
   {
     key: 'subject',
     header: 'Subject, Team & Escalation Context',
     render: (row) => (
       <div className="flex flex-col gap-0.5">
-        <span className="font-medium text-[#292A25]">{row.subject}</span>
+        <Link
+          to="/workspace/requests"
+          className="font-medium text-[#292A25] hover:text-[#777B63] hover:underline"
+        >
+          {row.subject}
+        </Link>
         <span className="text-[11px] text-[#777B63] font-mono">
           {row.policyRef} · {row.assignedTeam}
         </span>
