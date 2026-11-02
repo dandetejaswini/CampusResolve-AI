@@ -59,8 +59,22 @@ export const WorkspaceLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const savedProfile = React.useMemo(() => {
+    if (profile) return profile;
+    try {
+      const raw = localStorage.getItem('campusresolve_demo_profile');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.id && parsed.actor_role) return parsed;
+      }
+    } catch {}
+    return null;
+  }, [profile]);
+
+  const effectiveProfile = profile || savedProfile;
+
   const [activeRole, setActiveRole] = useState<ActorRole>(
-    profile?.actor_role || ActorRole.Learner
+    effectiveProfile?.actor_role || ActorRole.Learner
   );
   const [dataState, setDataState] = useState<ViewDataState>(ViewDataState.Empty);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -70,12 +84,12 @@ export const WorkspaceLayout: React.FC = () => {
   const [isLoadingWorkspace, setIsLoadingWorkspace] = useState<boolean>(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 
-  // Sync initial activeRole when authoritative database profile loads
+  // Sync initial activeRole when profile loads or switches
   useEffect(() => {
-    if (profile?.actor_role) {
-      setActiveRole(profile.actor_role);
+    if (effectiveProfile?.actor_role) {
+      setActiveRole(effectiveProfile.actor_role);
     }
-  }, [profile?.actor_role]);
+  }, [effectiveProfile?.actor_role]);
 
   const refreshWorkspaceData = useCallback(
     async (params?: {
@@ -84,11 +98,12 @@ export const WorkspaceLayout: React.FC = () => {
       kbSearch?: string;
       kbDomain?: string;
     }) => {
-      if (!profile) return;
+      const targetProfile = profile || savedProfile;
+      if (!targetProfile) return;
       setIsLoadingWorkspace(true);
       setWorkspaceError(null);
       try {
-        const res = await fetchWorkspaceBootstrap(params, profile);
+        const res = await fetchWorkspaceBootstrap(params, targetProfile);
         setWorkspaceData(res);
       } catch (err) {
         setWorkspaceError(
@@ -100,14 +115,15 @@ export const WorkspaceLayout: React.FC = () => {
         setIsLoadingWorkspace(false);
       }
     },
-    [profile]
+    [profile, savedProfile]
   );
 
   useEffect(() => {
-    if (profile) {
+    const targetProfile = profile || savedProfile;
+    if (targetProfile) {
       refreshWorkspaceData();
     }
-  }, [profile, refreshWorkspaceData]);
+  }, [profile, savedProfile, refreshWorkspaceData]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -135,7 +151,7 @@ export const WorkspaceLayout: React.FC = () => {
       <div className="min-h-screen flex bg-[#F8F7F3] text-[#292A25]">
         <WorkspaceSidebar
           activeRole={activeRole}
-          profile={profile}
+          profile={effectiveProfile}
           isOpenMobile={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           onSignOut={handleSignOut}
@@ -145,7 +161,7 @@ export const WorkspaceLayout: React.FC = () => {
           <WorkspaceHeader
             currentSectionLabel={matchedNav.label}
             activeRole={activeRole}
-            profile={profile}
+            profile={effectiveProfile}
             onRoleChange={setActiveRole}
             onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
             onSignOut={handleSignOut}

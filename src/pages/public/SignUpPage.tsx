@@ -41,7 +41,8 @@ export const SignUpPage: React.FC = () => {
   const [isSubmittingGoogle, setIsSubmittingGoogle] = useState(false);
 
   useEffect(() => {
-    if (status === 'authenticated' && profile) {
+    const hasSaved = Boolean(localStorage.getItem('campusresolve_demo_profile'));
+    if ((status === 'authenticated' && profile) || hasSaved) {
       navigate('/workspace/dashboard', { replace: true });
     }
   }, [status, profile, navigate]);

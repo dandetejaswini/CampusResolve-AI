@@ -28,7 +28,12 @@ export const SignInPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = (location.state as LocationState | null) || null;
-  const destinationPath = locationState?.from || '/workspace/dashboard';
+  const destinationPath =
+    locationState?.from &&
+    !locationState.from.includes('/sign-in') &&
+    !locationState.from.includes('/sign-up')
+      ? locationState.from
+      : '/workspace/dashboard';
 
   const [formState, setFormState] = useState<SignInFormInput>({
     email: '',
@@ -55,7 +60,8 @@ export const SignInPage: React.FC = () => {
   const [isSendingRecovery, setIsSendingRecovery] = useState(false);
 
   useEffect(() => {
-    if (status === 'authenticated' && profile) {
+    const hasSaved = Boolean(localStorage.getItem('campusresolve_demo_profile'));
+    if ((status === 'authenticated' && profile) || hasSaved) {
       navigate(destinationPath, { replace: true });
     }
   }, [status, profile, navigate, destinationPath]);

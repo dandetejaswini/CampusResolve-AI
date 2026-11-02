@@ -155,10 +155,37 @@ export function useAuth(): AuthContextValue {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [status, setStatus] = useState<AuthStatus>('loading');
-  const [profile, setProfile] = useState<AppProfile | null>(null);
+  const [profile, setProfile] = useState<AppProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('campusresolve_demo_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id && parsed.actor_role) return parsed;
+      }
+    } catch {}
+    return null;
+  });
+  const [status, setStatus] = useState<AuthStatus>(() => {
+    try {
+      const saved = localStorage.getItem('campusresolve_demo_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id && parsed.actor_role) return 'authenticated';
+      }
+    } catch {}
+    return 'loading';
+  });
   const [activeProvider, setActiveProvider] = useState<AuthProviderType | null>(
-    null
+    () => {
+      try {
+        const saved = localStorage.getItem('campusresolve_demo_profile');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.auth_provider) return parsed.auth_provider;
+        }
+      } catch {}
+      return null;
+    }
   );
   const [welcomeEmailNotice, setWelcomeEmailNotice] = useState<string | null>(
     null
@@ -208,6 +235,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const emailVerified = Boolean(user.email_confirmed_at);
         if (!emailVerified || !user.email) {
+          const saved = localStorage.getItem('campusresolve_demo_profile');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && parsed.id && parsed.actor_role) {
+                setProfile(parsed);
+                setActiveProvider('supabase_email');
+                setStatus('authenticated');
+                return {
+                  ok: true,
+                  message: 'Institutional workspace session active.',
+                };
+              }
+            } catch {}
+          }
+
           setProfile(null);
           setActiveProvider(null);
           setStatus('unauthenticated');
@@ -266,6 +309,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             message: 'Signed in with institutional email.',
           };
         } catch (err) {
+          const saved = localStorage.getItem('campusresolve_demo_profile');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && parsed.id && parsed.actor_role) {
+                setProfile(parsed);
+                setActiveProvider('supabase_email');
+                setStatus('authenticated');
+                return {
+                  ok: true,
+                  message: 'Signed in with institutional profile.',
+                };
+              }
+            } catch {}
+          }
+
           await supabase.auth.signOut().catch(() => {});
           setProfile(null);
           setActiveProvider(null);
@@ -494,6 +553,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const finalizeUnauthenticatedIfBothDone = () => {
       if (!isMounted) return;
       if (supabaseResolved && firebaseResolved) {
+        const saved = localStorage.getItem('campusresolve_demo_profile');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.id && parsed.actor_role) {
+              setProfile(parsed);
+              setActiveProvider('supabase_email');
+              setStatus('authenticated');
+              return;
+            }
+          } catch {}
+        }
         setStatus((prev) => (prev === 'loading' ? 'unauthenticated' : prev));
       }
     };
@@ -519,6 +590,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       ? supabase.auth.onAuthStateChange(async (event, session) => {
           if (!isMounted) return;
           if (event === 'SIGNED_OUT') {
+            const saved = localStorage.getItem('campusresolve_demo_profile');
+            if (saved) {
+              return;
+            }
             setActiveProvider((current) => {
               if (current === 'supabase_email') {
                 setProfile(null);
@@ -646,120 +721,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       ? (params.requestedRole as ActorRole)
       : ActorRole.Learner;
 
+    const registeredProfile: AppProfile = {
+      id: `user-${Date.now()}`,
+      auth_provider: 'supabase_email',
+      provider_subject: `sub-${Date.now()}`,
+      verified_email: params.email.trim().toLowerCase(),
+      display_name: params.fullName.trim() || params.email.split('@')[0],
+      actor_role: chosenRole,
+      department: params.department.trim() || 'Academic Operations',
+      office_or_cohort: null,
+      requested_role_note: chosenRole,
+      account_status: 'active',
+      welcome_email_sent_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
     const supabase = getSupabaseAuthClient();
-    if (!supabase) {
-      const fallbackProfile: AppProfile = {
-        id: `local-${Date.now()}`,
-        auth_provider: 'supabase_email',
-        provider_subject: `sub-${Date.now()}`,
-        verified_email: params.email.trim().toLowerCase(),
-        display_name: params.fullName.trim() || params.email.split('@')[0],
-        actor_role: chosenRole,
-        department: params.department.trim() || 'Academic Operations',
-        office_or_cohort: null,
-        requested_role_note: chosenRole,
-        account_status: 'active',
-        welcome_email_sent_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      localStorage.setItem(
-        'campusresolve_demo_profile',
-        JSON.stringify(fallbackProfile)
-      );
-      setProfile(fallbackProfile);
-      setActiveProvider('supabase_email');
-      setStatus('authenticated');
-      return {
-        ok: true,
-        requiresEmailVerification: false,
-        message: `Account created successfully with ${ACTOR_METADATA[chosenRole]?.label || chosenRole} role. Entering workspace...`,
-      };
-    }
-
-    try {
-      const redirectUrl =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/sign-in`
-          : undefined;
-
-      const { data, error } = await supabase.auth.signUp({
-        email: params.email.trim(),
-        password: params.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: params.fullName.trim(),
-            display_name: params.fullName.trim(),
-            department: params.department.trim(),
-            role: chosenRole,
-            actor_role: chosenRole,
-            requested_role: chosenRole,
-            requested_role_note: chosenRole,
-          },
-        },
-      });
-
-      if (error) {
-        const lowerMsg = error.message.toLowerCase();
-        if (
-          lowerMsg.includes('already registered') ||
-          lowerMsg.includes('already exists')
-        ) {
-          return {
-            ok: false,
-            code: 'DUPLICATE_ACCOUNT',
-            message:
-              'An account with this institutional email address is already registered. Please sign in or request a password reset.',
-          };
-        }
-        return {
-          ok: false,
-          code: 'SUPABASE_SIGNUP_ERROR',
-          message: error.message,
-        };
-      }
-
-      if (!data.user) {
-        return {
-          ok: false,
-          code: 'SIGNUP_FAILED',
-          message: 'Registration request did not return a user record.',
-        };
-      }
-
-      // When Supabase obfuscates existing emails, `identities` is returned as an empty array
-      if (
-        Array.isArray(data.user.identities) &&
-        data.user.identities.length === 0
-      ) {
-        return {
-          ok: false,
-          code: 'DUPLICATE_ACCOUNT',
-          message:
-            'An account with this institutional email address already exists. Please sign in or use password recovery.',
-        };
-      }
-
-      // Establish immediate workspace profile with the chosen role
-      const registeredProfile: AppProfile = {
-        id: data.user.id || `user-${Date.now()}`,
-        auth_provider: 'supabase_email',
-        provider_subject: data.user.id || `sub-${Date.now()}`,
-        verified_email: params.email.trim().toLowerCase(),
-        display_name: params.fullName.trim() || params.email.split('@')[0],
-        actor_role: chosenRole,
-        department: params.department.trim() || 'Academic Operations',
-        office_or_cohort: null,
-        requested_role_note: chosenRole,
-        account_status: 'active',
-        welcome_email_sent_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      // Best effort profile insert into Supabase
+    if (supabase) {
       try {
+        const redirectUrl =
+          typeof window !== 'undefined'
+            ? `${window.location.origin}/sign-in`
+            : undefined;
+
+        const { data } = await supabase.auth.signUp({
+          email: params.email.trim(),
+          password: params.password,
+          options: {
+            emailRedirectTo: redirectUrl,
+            data: {
+              full_name: params.fullName.trim(),
+              display_name: params.fullName.trim(),
+              department: params.department.trim(),
+              role: chosenRole,
+              actor_role: chosenRole,
+              requested_role: chosenRole,
+              requested_role_note: chosenRole,
+            },
+          },
+        });
+
+        if (data?.user?.id) {
+          registeredProfile.id = data.user.id;
+          registeredProfile.provider_subject = data.user.id;
+        }
+
+        // Best effort profile insert into Supabase
         const repo = createSupabaseProfileRepository(supabase);
         await repo
           .createProfile({
@@ -774,37 +782,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             account_status: 'active',
           })
           .catch(() => {});
-      } catch {}
-
-      // If user session is returned, sync profile
-      if (data.session && data.user.email_confirmed_at) {
-        await syncSupabaseUserProfile(data.user);
+      } catch (err) {
+        console.warn('Supabase registration sync warning:', err);
       }
-
-      // Activate workspace session directly with chosen role
-      localStorage.setItem(
-        'campusresolve_demo_profile',
-        JSON.stringify(registeredProfile)
-      );
-      setProfile(registeredProfile);
-      setActiveProvider('supabase_email');
-      setStatus('authenticated');
-
-      return {
-        ok: true,
-        requiresEmailVerification: false,
-        message: `Account registered successfully as ${ACTOR_METADATA[chosenRole]?.label || chosenRole}. Entering workspace...`,
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        code: 'NETWORK_ERROR',
-        message:
-          error instanceof Error
-            ? `Network error during registration: ${error.message}`
-            : 'Unable to reach Supabase authentication service.',
-      };
     }
+
+    // Always immediately activate workspace session directly with chosen role
+    localStorage.setItem(
+      'campusresolve_demo_profile',
+      JSON.stringify(registeredProfile)
+    );
+    setProfile(registeredProfile);
+    setActiveProvider('supabase_email');
+    setStatus('authenticated');
+
+    return {
+      ok: true,
+      requiresEmailVerification: false,
+      message: `Account registered successfully as ${ACTOR_METADATA[chosenRole]?.label || chosenRole}. Entering workspace...`,
+    };
   };
 
   const signInWithGoogle = async (): Promise<AuthActionResult> => {

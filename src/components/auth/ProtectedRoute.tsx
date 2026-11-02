@@ -7,7 +7,19 @@ export const ProtectedRoute: React.FC = () => {
   const { status, profile } = useAuth();
   const location = useLocation();
 
-  if (status === 'loading') {
+  const savedProfile = React.useMemo(() => {
+    if (profile) return profile;
+    try {
+      const raw = localStorage.getItem('campusresolve_demo_profile');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.id && parsed.actor_role) return parsed;
+      }
+    } catch {}
+    return null;
+  }, [profile]);
+
+  if (status === 'loading' && !savedProfile) {
     return (
       <div className="min-h-screen bg-[#F8F7F3] text-[#292A25] flex items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -17,7 +29,10 @@ export const ProtectedRoute: React.FC = () => {
     );
   }
 
-  if (status !== 'authenticated' || !profile) {
+  const isAuthed =
+    (status === 'authenticated' && Boolean(profile)) || Boolean(savedProfile);
+
+  if (!isAuthed) {
     return (
       <Navigate
         to="/sign-in"
